@@ -1,8 +1,8 @@
 package predict;
 
-import data.Movement;
-import data.MovementDB;
-import data.Place;
+import data.Checkin;
+import data.Sequence;
+import data.SequenceDataset;
 import myutils.ScoreCell;
 import myutils.TopKSearcher;
 
@@ -18,14 +18,14 @@ public abstract class Predictor {
 
 
     // Input: a database of length-2 movements;
-    public void predict(MovementDB mdb, int K) {
+    public void predict(SequenceDataset mdb, int K) {
         int numCorrectPrediction = 0;
         for (int i=0; i<mdb.size(); i++) {
-            Movement m = mdb.getMovement(i);
-            List<Place> candidate = mdb.getCandidate(i);
+            Sequence m = mdb.getSequence(i);
+            List<Checkin> candidate = mdb.getCandidate(i);
             TopKSearcher tks = new TopKSearcher();
             tks.init(K);
-            for (Place p : candidate) {
+            for (Checkin p : candidate) {
                 ScoreCell sc = calcScore(m, p);
                 tks.add(sc);
             }
@@ -41,10 +41,10 @@ public abstract class Predictor {
         accuracy = (double) numCorrectPrediction / (double) mdb.size();
     }
 
-    public abstract ScoreCell calcScore(Movement m, Place p);
+    public abstract ScoreCell calcScore(Sequence m, Checkin p);
 
-    public boolean isCorrect(Movement m, ScoreCell [] topKResult) {
-        int groundTruth = m.getEndPlace().getId();
+    public boolean isCorrect(Sequence m, ScoreCell [] topKResult) {
+        int groundTruth = m.getCheckin(1).getId();
         for (int i=0; i<topKResult.length; i++)
             if (groundTruth == topKResult[i].getId())
                 return  true;

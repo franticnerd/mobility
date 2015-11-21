@@ -1,8 +1,8 @@
 package demo;
 
-import data.BackgroundDatabase;
-import data.Database;
-import data.HMMDatabase;
+import data.CheckinDataset;
+import data.SequenceDataset;
+import data.WordDataset;
 import model.Background;
 import model.HMM;
 import model.Mixture;
@@ -16,10 +16,14 @@ import java.util.Map;
 public class Demo {
 
     static Map config;
+    static Mongo mongo;
     static Background b;
     static HMM h;
     static Mixture m;
-    static Mongo mongo;
+
+    static WordDataset wd = new WordDataset();
+    static SequenceDataset hmmd = new SequenceDataset();
+    static CheckinDataset bgd = new CheckinDataset();
 
     /** ---------------------------------- Initialize ---------------------------------- **/
     static void init(String paraFile) throws Exception {
@@ -30,10 +34,12 @@ public class Demo {
 
     static void loadData() throws Exception {
         // load data
-        String placeFile = (String) ((Map)((Map)config.get("file")).get("input")).get("places");
-        String checkinFile = (String) ((Map)((Map)config.get("file")).get("input")).get("checkins");
         String wordFile = (String) ((Map)((Map)config.get("file")).get("input")).get("words");
-        Database.loadData(placeFile, checkinFile, wordFile);
+        String sequenceFile = (String) ((Map)((Map)config.get("file")).get("input")).get("sequences");
+        wd.load(wordFile);
+        hmmd.load(sequenceFile);
+        hmmd.setNumWords(wd.size());
+        bgd.load(hmmd);
     }
 
     /** ---------------------------------- Train ---------------------------------- **/
@@ -45,8 +51,6 @@ public class Demo {
     }
 
     static Background trainBackground() {
-      BackgroundDatabase bgd = new BackgroundDatabase();
-      bgd.load();  // extract the background training data from the database.
       int maxIter = (Integer)((Map)config.get("model")).get("maxIter");
       int numState = (Integer)((Map)((Map)config.get("model")).get("background")).get("numState");
       Background b = new Background(maxIter);
@@ -56,10 +60,6 @@ public class Demo {
     }
 
     static HMM trainHMM() {
-        HMMDatabase hmmd = new HMMDatabase();
-        int minGap = (Integer)((Map)config.get("preprocess")).get("minGap");
-        int maxGap = (Integer)((Map)config.get("preprocess")).get("maxGap");
-        hmmd.load(minGap, maxGap);
         int maxIter = (Integer)((Map)config.get("model")).get("maxIter");
         int numState = (Integer)((Map)((Map)config.get("model")).get("hmm")).get("numState");
         int numComponent = (Integer)((Map)((Map)config.get("model")).get("hmm")).get("numComponent");
@@ -70,13 +70,9 @@ public class Demo {
     }
 
     static Mixture trainMixture() {
-        HMMDatabase hmmd = new HMMDatabase();
-        int minGap = (Integer)((Map)config.get("preprocess")).get("minGap");
-        int maxGap = (Integer)((Map)config.get("preprocess")).get("maxGap");
-        hmmd.load(minGap, maxGap);
         int maxIter = (Integer)((Map)config.get("model")).get("maxIter");
-        int numState = (Integer)((Map)((Map)config.get("model")).get("mixture")).get("numState");
-        int numComponent = (Integer)((Map)((Map)config.get("model")).get("mixture")).get("numComponent");
+        int numState = (Integer)((Map)((Map)config.get("model")).get("hmm")).get("numState");
+        int numComponent = (Integer)((Map)((Map)config.get("model")).get("hmm")).get("numComponent");
         Mixture m = new Mixture(maxIter, b);
         m.train(hmmd, numState, numComponent);
         System.out.println("Finished training the Mixture model.");
@@ -85,9 +81,9 @@ public class Demo {
 
     static void writeModels() throws Exception {
         if((Boolean)((Map)config.get("file")).get("write")) {
-            b.write((String) ((Map) ((Map) config.get("file")).get("output")).get("bg_description"));
-            h.write((String)((Map)((Map)config.get("file")).get("output")).get("hmm_description"));
-            m.write((String)((Map)((Map)config.get("file")).get("output")).get("mixture_description"));
+            b.write(wd, (String) ((Map) ((Map) config.get("post")).get("keyword")).get("bgd_description"));
+            h.write(wd, (String)((Map)((Map)config.get("post")).get("keyword")).get("hmm_description"));
+            m.write(wd, (String) ((Map) ((Map) config.get("post")).get("keyword")).get("mix_description"));
         }
         if((Boolean)((Map)config.get("mongo")).get("write")) {
             mongo.writeModels(b, h, m);
@@ -97,7 +93,7 @@ public class Demo {
 
     /** ---------------------------------- Main ---------------------------------- **/
     public static void main(String [] args) throws Exception {
-        String paraFile = args.length > 0 ? args[0] : "../run/4sq.yaml";
+        String paraFile = args.length > 0 ? args[0] : "../run/ny40k.yaml";
         init(paraFile);
         train();
         writeModels();
@@ -128,7 +124,7 @@ public class Demo {
 //     }
 
 //     public static void genTestSequences(ParaConfig pc) throws Exception {
-//         HMMDatabase hmmd = new HMMDatabase();
+//         SequenceDataset hmmd = new SequenceDataset();
 //         hmmd.load(pc);
 //         hmmd.writeTestSequences(pc.getStringPara("labeledSeqFile"), pc.getIntPara("numLabelSequence"));
 //     }

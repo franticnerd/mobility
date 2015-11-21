@@ -6,7 +6,7 @@ import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
-public class WordDatabase implements Serializable {
+public class WordDataset implements Serializable {
 
   Map<Integer, String> dict = new HashMap<Integer, String>();
 
@@ -36,7 +36,7 @@ public class WordDatabase implements Serializable {
   public static void main(String [] args) throws Exception {
     String dataDir = "/Users/chao/Dataset/nyc_checkins/hmm/";
     String wordFile = dataDir + "words.txt";
-    WordDatabase wd = new WordDatabase();
+    WordDataset wd = new WordDataset();
     wd.load(wordFile);
     System.out.println("Finished loading words. Count:" + wd.size());
   }

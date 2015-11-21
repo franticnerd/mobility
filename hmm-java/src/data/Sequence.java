@@ -9,19 +9,19 @@ import java.util.*;
 
 public class Sequence implements Serializable {
 
-  int userId;
+  long userId;
 
   // a list of checkins for the user
   List<Checkin> checkins = null;
 
   public Sequence() {}
 
-  public Sequence(int userId) {
+  public Sequence(long userId) {
     this.userId = userId;
     checkins = new ArrayList<Checkin>();
   }
 
-  public Sequence(int userId, List<Checkin> checkins) {
+  public Sequence(long userId, List<Checkin> checkins) {
     this.userId = userId;
     this.checkins = checkins;
   }
@@ -53,22 +53,6 @@ public class Sequence implements Serializable {
           return -1;
       }
     });
-  }
-
-
-  // convert a length-2 sequence into a string
-  public String toStringForLengthTwo() {
-    Checkin c1 = checkins.get(0);
-    Checkin c2 = checkins.get(1);
-    String s = c1.getId() + "," + c2.getId() + ",";
-    s += c1.getUserId() + ",";
-    Place p1 = Database.getPlace(c1.getPlaceId());
-    Place p2 = Database.getPlace(c2.getPlaceId());
-    s += p1.getGeographicDist(p2);
-    s += ",";
-    s += c2.getTimestamp() - c1.getTimestamp();
-    s += "," + c1.getText() + "," + c2.getText();
-    return s;
   }
 
 }

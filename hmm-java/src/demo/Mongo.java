@@ -73,9 +73,11 @@ public class Mongo {
     }
 
     public Mixture loadMixture() {
+        DBObject bgquery = new BasicDBObject("background", new BasicDBObject("$exists", true));
+        DBObject background = modelCol.findOne(bgquery);
         DBObject query = new BasicDBObject("mixture", new BasicDBObject("$exists", true));
         DBObject doc = modelCol.findOne(query);
-        return new Mixture((DBObject)doc.get("mixture"));
+        return new Mixture((DBObject)background.get("background"), (DBObject)doc.get("mixture"));
     }
 
 }

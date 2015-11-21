@@ -1,7 +1,7 @@
 package predict;
 
-import data.Movement;
-import data.Place;
+import data.Checkin;
+import data.Sequence;
 import myutils.ScoreCell;
 
 /**
@@ -9,10 +9,10 @@ import myutils.ScoreCell;
  */
 public class DistancePredictor extends Predictor {
 
-    public ScoreCell calcScore(Movement m, Place p) {
+    public ScoreCell calcScore(Sequence m, Checkin p) {
         int placeId = p.getId();
-        Place startPlace = m.getStartPlace();
-        double score = p.getGeographicDist(startPlace);
+        Checkin startPlace = m.getCheckin(0);
+        double score = p.getLocation().calcEuclideanDist(startPlace.getLocation());
         return new ScoreCell(placeId, score);
     }
 

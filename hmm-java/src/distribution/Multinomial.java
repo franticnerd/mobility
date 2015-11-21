@@ -3,7 +3,7 @@ package distribution;
 import com.mongodb.BasicDBList;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBObject;
-import data.WordDatabase;
+import data.WordDataset;
 import myutils.ArrayUtils;
 
 import java.io.Serializable;
@@ -98,7 +98,7 @@ public class Multinomial implements Serializable {
     }
 
     // Get the top-k words
-    public String getWordDistribution(WordDatabase wd, int K) {
+    public String getWordDistribution(WordDataset wd, int K) {
         List<Pair> wordScorePairs = new ArrayList<Pair>();
         for (int i=0; i<prob.length; i++) {
             wordScorePairs.add(new Pair(i, prob[i]));

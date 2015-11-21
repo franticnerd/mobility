@@ -1,11 +1,8 @@
 package model;
 
-import com.mongodb.BasicDBList;
-import com.mongodb.BasicDBObject;
 import com.mongodb.DBObject;
-import data.HMMDatabase;
+import data.SequenceDataset;
 import myutils.ArrayUtils;
-import org.apache.commons.math3.linear.RealVector;
 
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -13,7 +10,6 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import static java.lang.Math.exp;
 import static java.lang.Math.log;
@@ -39,11 +35,15 @@ public class Mixture extends HMM {
         load(o);
     }
 
+    public Mixture(DBObject background, DBObject o) {
+        load(background, o);
+    }
+
     public Background getBackgroundModel() {
         return backgroundModel;
     }
 
-    public void train(HMMDatabase data, int K, int M) {
+    public void train(SequenceDataset data, int K, int M) {
         init(data, K, M);
         double prevLL = totalLL;
         for (int iter = 0; iter < maxIter; iter ++) {
@@ -66,7 +66,7 @@ public class Mixture extends HMM {
     }
 
     // Initialize the paramters that need to be inferred.
-    protected void initMStepParameters(HMMDatabase data) {
+    protected void initMStepParameters(SequenceDataset data) {
         super.initMStepParameters(data);
         lambda = 0.5;
     }
@@ -74,20 +74,26 @@ public class Mixture extends HMM {
     /**
      * Step 2: learning the parameters using EM: E-Step.
      */
-    protected void eStep(HMMDatabase data) {
+    protected void eStep(SequenceDataset data) {
         super.eStep(data);
         calcKappa(data);
     }
 
-    protected void calcKappa(HMMDatabase data) {
+    protected void calcKappa(SequenceDataset data) {
         for (int r=0; r<R; r++) {
             // Background LL
+
+//            kappa[r][0]= log(1.0 - lambda);
+//            for (int n=0; n<2; n++) {
+//                RealVector geoDatum = data.getGeoDatum(2*r+n);
+//                Map<Integer, Integer> textDatum = data.getTextDatum(2*r+n);
+//                kappa[r][0] += backgroundModel.calcLL(geoDatum, textDatum);
+//            }
+
             kappa[r][0]= log(1.0 - lambda);
-            for (int n=0; n<2; n++) {
-                RealVector geoDatum = data.getGeoDatum(2*r+n);
-                Map<Integer, Integer> textDatum = data.getTextDatum(2*r+n);
-                kappa[r][0] += backgroundModel.calcLL(geoDatum, textDatum);
-            }
+            kappa[r][0] += backgroundModel.calcLL(data.getGeoDatum(2*r), data.getTextDatum(2*r),
+                    data.getGeoDatum(2*r + 1), data.getTextDatum(2*r + 1));
+
             // HMM LL
             kappa[r][1]= log(lambda);
             // Note that p(X) has been scaled: p(X) = p(X^0) / exp(scale)
@@ -101,7 +107,7 @@ public class Mixture extends HMM {
     /**
      * Step 3: learning the parameters using EM: M-Step.
      */
-    protected void mStep(HMMDatabase data) {
+    protected void mStep(SequenceDataset data) {
         updateLambda();
         updatePi();
         updateA();
@@ -147,7 +153,7 @@ public class Mixture extends HMM {
         }
     }
 
-    protected void updateTextModel(HMMDatabase data) {
+    protected void updateTextModel(SequenceDataset data) {
         for(int k=0; k<K; k++) {
             List<Double> textWeights = new ArrayList<Double>();
             for (int r=0; r<R; r++)
@@ -157,7 +163,7 @@ public class Mixture extends HMM {
         }
     }
 
-    protected void updateGeoModel(HMMDatabase data) {
+    protected void updateGeoModel(SequenceDataset data) {
         updateC();
         for(int k=0; k<K; k++) {
             for (int m=0; m<M; m++) {
@@ -191,17 +197,14 @@ public class Mixture extends HMM {
      * Functions for computing probabilities
      */
 
-    protected void calcTotalLL(HMMDatabase data) {
+    protected void calcTotalLL(SequenceDataset data) {
         totalLL = 0;
         for (int r=0; r<R; r++) {
             double hmmLL = 0;
             for (int n=0; n<2; n++)
                 hmmLL += con[r][n] + scalingFactor[r][n];
-            double backgroundLL = 0;
-            for (int n=0; n<2; n++) {
-                double prob = backgroundModel.calcLL(data.getGeoDatum(2 * r + n), data.getTextDatum(2 * r + n));
-                backgroundLL += prob;
-            }
+            double backgroundLL = backgroundModel.calcLL(data.getGeoDatum(2 * r), data.getTextDatum(2 * r),
+                    data.getGeoDatum(2 * r + 1), data.getTextDatum(2 * r + 1));
             double mixtureProb = lambda * exp(hmmLL) + (1 - lambda) * exp(backgroundLL);
             totalLL += log(mixtureProb);
         }
@@ -230,29 +233,24 @@ public class Mixture extends HMM {
 
     public DBObject toBson() {
         DBObject o = super.toBson();
-//        o.put("kappa", kappa);
         o.put("lambda", lambda);
-        o.put("background", backgroundModel.toBson());
+//        o.put("background", backgroundModel.toBson());
         return o;
     }
 
 
-    public void load(DBObject o) {
+//    public void load(DBObject o) {
+//        super.load(o);
+//        this.lambda = (Double) o.get("lambda");
+//        DBObject bgd = (BasicDBObject) o.get("background");
+//        this.backgroundModel = new Background(bgd);
+//    }
+
+    public void load(DBObject background, DBObject o) {
         super.load(o);
         this.lambda = (Double) o.get("lambda");
-
-//        Object[] kappaList = ((BasicDBList)o.get("kappa")).toArray();
-//        this.kappa = new double[kappaList.length][((BasicDBList)kappaList[0]).size()];
-//        for(int i=0; i<kappaList.length; i++) {
-//            BasicDBList list = (BasicDBList) kappaList[i];
-//            for (int j = 0; j < list.size(); j++)
-//                kappa[i][j] = (Double) list.get(j);
-//        }
-
-        DBObject bgd = (BasicDBObject) o.get("background");
-        this.backgroundModel = new Background(bgd);
+        this.backgroundModel = new Background(background);
     }
-
 
 }
 

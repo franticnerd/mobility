@@ -1,0 +1,64 @@
+file:
+  write: yes
+  dir: &DIR /Users/chao/Dataset/hmm-mobility/tweet/
+  raw:
+    dir: &RAW_DIR !join [*DIR, raw/]
+    checkins: !join [*RAW_DIR, checkins.txt]
+    places: !join [*RAW_DIR, places.txt]
+    stopwords: !join [*RAW_DIR, stopwords.txt]
+  input:
+    dir: &IN_DIR !join [*DIR, input/]
+    sequences: !join [*IN_DIR, sequences.txt]
+    words: !join [*IN_DIR, words.txt]
+
+
+mongo:
+  write: yes
+  dns: dmserv4.cs.illinois.edu
+  port: 11111
+  db: ny9m
+  raw: raw
+  sequences: hmm_seqs
+  words: hmm_words
+  models: hmm_models
+
+
+preprocess:
+  source: db
+  startTime: 2014-07-31 00:00:00
+  endTime: 2014-08-31 00:00:00
+  minGap: 90
+  maxGap: 240
+
+
+model:
+  train: yes
+  maxIter: 5
+  background:
+    numState: 30
+  hmm:
+    numState: 30
+    numComponent: 1
+
+
+predict:
+  numPrediction: 10
+  numSequence: 1000
+
+
+post:
+  keyword:
+    K: 10
+    dir: &OUT_DIR !join [*DIR, output/]
+    bgd_description: !join [*OUT_DIR, bg.txt]
+    hmm_description: !join [*OUT_DIR, hmm.txt]
+    mix_description: !join [*OUT_DIR, mixture.txt]
+  plot:
+    # dir: &DRAW_DIR ../../figure/exp/4sq/
+    dir: &DRAW_DIR !join [*DIR, output/]
+    places: !join [*DRAW_DIR, places.pdf]
+    bgd_geo: !join [*DRAW_DIR, background.pdf]
+    hmm_geo: !join [*DRAW_DIR, hmm.pdf]
+    mix_geo: !join [*DRAW_DIR, mixture.pdf]
+    mix_state: !join [*DRAW_DIR, mixture_state.pdf]
+    hmm_state: !join [*DRAW_DIR, hmm_state.pdf]

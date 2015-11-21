@@ -1,7 +1,7 @@
 package predict;
 
-import data.Movement;
-import data.Place;
+import data.Checkin;
+import data.Sequence;
 import model.HMM;
 import myutils.ScoreCell;
 import org.apache.commons.math3.linear.RealVector;
@@ -21,14 +21,14 @@ public class HMMPredictor extends Predictor {
         this.model = model;
     }
 
-    public ScoreCell calcScore(Movement m, Place p) {
-        Place startPlace = m.getStartPlace();
+    public ScoreCell calcScore(Sequence m, Checkin p) {
+        Checkin startPlace = m.getCheckin(0);
         List<RealVector> geo = new ArrayList<RealVector>();
         List<Map<Integer,Integer>> text = new ArrayList<Map<Integer, Integer>>();
         geo.add(startPlace.getLocation().toRealVector());
-        text.add(startPlace.getDescriptions());
+        text.add(startPlace.getMessage());
         geo.add(p.getLocation().toRealVector());
-        text.add(p.getDescriptions());
+        text.add(p.getMessage());
         double score = model.calcLL(geo, text);
         int placeId = p.getId();
         return new ScoreCell(placeId, score);

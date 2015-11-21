@@ -4,8 +4,8 @@ import cluster.KMeans;
 import com.mongodb.BasicDBList;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBObject;
-import data.BackgroundDatabase;
-import data.Database;
+import data.CheckinDataset;
+import data.WordDataset;
 import distribution.Gaussian;
 import distribution.Multinomial;
 import myutils.ArrayUtils;
@@ -43,7 +43,7 @@ public class Background implements Serializable {
         load(o);
     }
 
-    public void train(BackgroundDatabase bgd, int K) {
+    public void train(CheckinDataset bgd, int K) {
         init(bgd, K);
         double prevLL = totalLL;
         for (int iter = 0; iter < maxIter; iter ++) {
@@ -60,7 +60,7 @@ public class Background implements Serializable {
     /**
      * Step 1: initialize the data, and geo and text models.
      */
-    private void init(BackgroundDatabase bgd, int K) {
+    private void init(CheckinDataset bgd, int K) {
         this.N = bgd.numPlace();
         this.V = bgd.numWord();
         this.K = K;
@@ -72,7 +72,7 @@ public class Background implements Serializable {
         gamma = new double[N][K];
     }
 
-    private void initPi(List<Integer> [] kMeansResults, BackgroundDatabase bgd) {
+    private void initPi(List<Integer> [] kMeansResults, CheckinDataset bgd) {
         pi = new double [K];
         for(int i=0; i<K; i++) {
             List<Integer> dataIds = kMeansResults[i];
@@ -85,7 +85,7 @@ public class Background implements Serializable {
     }
 
 
-    private void initGeoModel(List<Integer> [] kMeansResults, BackgroundDatabase bgd) {
+    private void initGeoModel(List<Integer> [] kMeansResults, CheckinDataset bgd) {
         this.geoModel = new Gaussian[K];
         for(int i=0; i<K; i++) {
             List<Integer> dataIds = kMeansResults[i];
@@ -100,7 +100,7 @@ public class Background implements Serializable {
         }
     }
 
-    private void initTextModel(List<Integer> [] kMeansResults, BackgroundDatabase bgd) {
+    private void initTextModel(List<Integer> [] kMeansResults, CheckinDataset bgd) {
         this.textModel = new Multinomial[K];
         for(int i=0; i<K; i++) {
             List<Integer> dataIds = kMeansResults[i];
@@ -118,7 +118,7 @@ public class Background implements Serializable {
     /**
      * Step 2: learning the parameters using EM: E-Step.
      */
-    private void eStep(BackgroundDatabase bgd) {
+    private void eStep(CheckinDataset bgd) {
         // calc probability in the log domain
         for(int i=0; i<N; i++)
             for (int k = 0; k < K; k++)
@@ -133,13 +133,13 @@ public class Background implements Serializable {
     /**
      * Step 3: learning the parameters using EM: M-Step.
      */
-    private void mStep(BackgroundDatabase bgd) {
+    private void mStep(CheckinDataset bgd) {
         updatePi(bgd);
         updateTextModel(bgd);
         updateGeoModel(bgd);
     }
 
-    private void updatePi(BackgroundDatabase bgd) {
+    private void updatePi(CheckinDataset bgd) {
         for(int k=0; k<K; k++) {
             double sum = 0;
             for(int i=0; i<N; i++)
@@ -148,7 +148,7 @@ public class Background implements Serializable {
         }
     }
 
-    private void updateTextModel(BackgroundDatabase bgd) {
+    private void updateTextModel(CheckinDataset bgd) {
         for(int k=0; k<K; k++) {
             List<Double> textWeights = new ArrayList<Double>();
             for (int i=0; i<N; i++) {
@@ -158,7 +158,7 @@ public class Background implements Serializable {
         }
     }
 
-    private void updateGeoModel(BackgroundDatabase bgd) {
+    private void updateGeoModel(CheckinDataset bgd) {
         for(int k=0; k<K; k++) {
             List<Double> geoWeights = new ArrayList<Double>();
             for (int i=0; i<N; i++) {
@@ -172,7 +172,7 @@ public class Background implements Serializable {
     /**
      * Utility functions.
      */
-    private void calcTotalLL(BackgroundDatabase bgd) {
+    private void calcTotalLL(CheckinDataset bgd) {
         totalLL = 0;
         for (int i=0; i<N; i++)
             totalLL += calcLL(bgd.getGeoDatum(i), bgd.getTextDatum(i));
@@ -203,8 +203,37 @@ public class Background implements Serializable {
     }
 
 
-    @Override
-    public String toString() {
+    // calc ll for a length-2 sequence
+    public double calcLL(RealVector geoDatumA, Map<Integer, Integer> textDatumA,
+                         RealVector geoDatumB, Map<Integer, Integer> textDatumB) {
+        double [] lnProb = new double [K];
+        for (int k=0; k<K; k++)
+            lnProb[k] = calcLLComponentForSeqs(geoDatumA, textDatumA, geoDatumB, textDatumB, k);
+        double maxLnProb = ArrayUtils.max(lnProb);
+        for (int k=0; k<K; k++)
+            lnProb[k] -= maxLnProb;
+        double sum = 0;
+        for (int k=0; k<K; k++)
+            sum += Math.exp(lnProb[k]);
+        if(sum == 0)
+            System.out.println("Warning. Sum is 0 when computing log-likelihood for Background.");
+        return maxLnProb + Math.log(sum);
+    }
+
+
+    // Calc ln p(x, k)
+    private double calcLLComponentForSeqs(RealVector geoDatumA, Map<Integer, Integer> textDatumA,
+                                          RealVector geoDatumB, Map<Integer, Integer> textDatumB,
+                                          int k) {
+        double priorProb = Math.log(pi[k]);
+        double geoProb = geoModel[k].calcLL(geoDatumA);
+        double textProb = textModel[k].calcLL(textDatumA);
+        double geoProbB = geoModel[k].calcLL(geoDatumB);
+        double textProbB = textModel[k].calcLL(textDatumB);
+        return priorProb + geoProb + textProb + geoProbB + textProbB;
+    }
+
+    public String toString(WordDataset wd) {
         // Write K.
         String s = "# K\n";
         s += K + "\n";
@@ -225,7 +254,7 @@ public class Background implements Serializable {
         s += "# text\n";
         for(int i=0; i<K; i++) {
             s += "------------------------------ State " + i + "------------------------------\n";
-            s += textModel[i].getWordDistribution(Database.wd, 20) + "\n";  // Output the top 20 words.
+            s += textModel[i].getWordDistribution(wd, 20) + "\n";  // Output the top 20 words.
         }
         return s;
     }
@@ -245,9 +274,9 @@ public class Background implements Serializable {
         oos.close();
     }
 
-    public void write(String outputFile) throws Exception {
+    public void write(WordDataset wd, String outputFile) throws Exception {
         BufferedWriter bw = new BufferedWriter(new FileWriter(outputFile, false));
-        bw.append(this.toString());
+        bw.append(this.toString(wd));
         bw.close();
     }
 

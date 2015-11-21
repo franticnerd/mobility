@@ -6,15 +6,16 @@ import java.util.Map;
 public class Checkin implements Serializable {
 
   int checkinId;
-  int userId;
-  int placeId;
+  long userId;
+  Location location;
   int timestamp;
   Map<Integer, Integer> message;  // Key: word, Value:count
 
-  public Checkin(int checkinId, int userId, int placeId, int timestamp, Map<Integer, Integer> message) {
-    this.checkinId = checkinId;
+  public Checkin(int checkInId, int timestamp, long userId, double lat, double lng, Map<Integer, Integer> message) {
+    this.checkinId = checkInId;
+    this.timestamp = timestamp;
     this.userId = userId;
-    this.placeId = placeId;
+    this.location = new Location(lat, lng);
     this.timestamp = timestamp;
     this.message = message;
   }
@@ -23,12 +24,12 @@ public class Checkin implements Serializable {
     return checkinId;
   }
 
-  public int getUserId() {
+  public long getUserId() {
     return userId;
   }
 
-  public int getPlaceId() {
-    return placeId;
+  public Location getLocation() {
+    return location;
   }
 
   public int getTimestamp() {
@@ -39,19 +40,12 @@ public class Checkin implements Serializable {
     return message;
   }
 
-
   // Get the text of the message and the description of the location
-  public String getText() {
+  public String getText(WordDataset wd) {
     String s = "";
-    Place place = Database.getPlace(placeId);
-    Map<Integer, Integer> description = place.getDescriptions();
-    for (Map.Entry<Integer, Integer> e : description.entrySet()) {
-      int wid = e.getKey();
-      s += Database.getWord(wid) + " ";
-    }
     for (Map.Entry<Integer, Integer> e : message.entrySet()) {
       int wid = e.getKey();
-      s += Database.getWord(wid) + " ";
+      s += wd.getWord(wid) + " ";
     }
     return s;
   }

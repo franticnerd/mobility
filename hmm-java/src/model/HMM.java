@@ -4,8 +4,8 @@ import cluster.KMeans;
 import com.mongodb.BasicDBList;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBObject;
-import data.Database;
-import data.HMMDatabase;
+import data.SequenceDataset;
+import data.WordDataset;
 import distribution.Gaussian;
 import distribution.Multinomial;
 import myutils.ArrayUtils;
@@ -60,7 +60,7 @@ public class HMM implements Serializable {
         this.maxIter = maxIter;
     }
 
-    public void train(HMMDatabase data, int K, int M) {
+    public void train(SequenceDataset data, int K, int M) {
         init(data, K, M);
         double prevLL = totalLL;
         for (int iter = 0; iter < maxIter; iter++) {
@@ -77,15 +77,15 @@ public class HMM implements Serializable {
     /**
      * Step 1: initialize the geo and text models.
      */
-    protected void init(HMMDatabase data, int K, int M) {
+    protected void init(SequenceDataset data, int K, int M) {
         initFixedParameters(data, K, M);
         initEStepParameters();
         initMStepParameters(data);
     }
 
 
-    protected void initFixedParameters(HMMDatabase data, int K, int M) {
-        this.R = data.numSequences();
+    protected void initFixedParameters(SequenceDataset data, int K, int M) {
+        this.R = data.size();
         this.K = K;
         this.M = M;
         this.V = data.numWords();
@@ -103,7 +103,7 @@ public class HMM implements Serializable {
     }
 
     // Initialize the paramters that need to be inferred.
-    protected void initMStepParameters(HMMDatabase data) {
+    protected void initMStepParameters(SequenceDataset data) {
         List<Integer>[] kMeansResults = runKMeans(data);
         initPi(kMeansResults);
         initA(kMeansResults);
@@ -112,7 +112,7 @@ public class HMM implements Serializable {
     }
 
     // Run k-means for the geo data to initialize the params.
-    protected List<Integer>[] runKMeans(HMMDatabase data) {
+    protected List<Integer>[] runKMeans(SequenceDataset data) {
         List<Double> weights = new ArrayList<Double>();
         for (int i = 0; i < data.getGeoData().size(); i++)
             weights.add(1.0);
@@ -157,7 +157,7 @@ public class HMM implements Serializable {
         return dataMembership;
     }
 
-    protected void initTextModel(List<Integer>[] kMeansResults, HMMDatabase data) {
+    protected void initTextModel(List<Integer>[] kMeansResults, SequenceDataset data) {
         this.textModel = new Multinomial[K];
         for (int i = 0; i < K; i++) {
             List<Integer> dataIds = kMeansResults[i];
@@ -173,7 +173,7 @@ public class HMM implements Serializable {
     }
 
     // Initialize the geo model and c
-    protected void initGeoModel(List<Integer>[] kMeansResults, HMMDatabase data) {
+    protected void initGeoModel(List<Integer>[] kMeansResults, SequenceDataset data) {
         this.geoModel = new Gaussian[K][M];  // K states, each having M components
         this.c = new double[K][M];
         for (int k = 0; k < K; k++) {
@@ -205,7 +205,7 @@ public class HMM implements Serializable {
     /**
      * Step 2: learning the parameters using EM: E-Step.
      */
-    protected void eStep(HMMDatabase data) {
+    protected void eStep(SequenceDataset data) {
         calcLL(data);
         scaleLL();
         calcAlpha();
@@ -216,7 +216,7 @@ public class HMM implements Serializable {
     }
 
     // Compute the log likelihood.
-    protected void calcLL(HMMDatabase data) {
+    protected void calcLL(SequenceDataset data) {
         for (int r = 0; r < R; r++)
             for (int n = 0; n < 2; n++)
                 for (int k = 0; k < K; k++)
@@ -302,7 +302,7 @@ public class HMM implements Serializable {
     }
 
 
-    protected void calcRho(HMMDatabase data) {
+    protected void calcRho(SequenceDataset data) {
         for (int r = 0; r < R; r++) {
             for (int n = 0; n < 2; n++) {
                 RealVector v = data.getGeoDatum(2 * r + n);
@@ -320,7 +320,7 @@ public class HMM implements Serializable {
     /**
      * Step 3: learning the parameters using EM: M-Step.
      */
-    protected void mStep(HMMDatabase data) {
+    protected void mStep(SequenceDataset data) {
         updatePi();
         updateA();
         updateTextModel(data);
@@ -354,7 +354,7 @@ public class HMM implements Serializable {
         }
     }
 
-    protected void updateTextModel(HMMDatabase data) {
+    protected void updateTextModel(SequenceDataset data) {
         for (int k = 0; k < K; k++) {
             List<Double> textWeights = new ArrayList<Double>();
             for (int r = 0; r < R; r++)
@@ -364,7 +364,7 @@ public class HMM implements Serializable {
         }
     }
 
-    protected void updateGeoModel(HMMDatabase data) {
+    protected void updateGeoModel(SequenceDataset data) {
         updateC();
         for (int k = 0; k < K; k++) {
             for (int m = 0; m < M; m++) {
@@ -437,8 +437,7 @@ public class HMM implements Serializable {
     /**
      * Functions for output.
      */
-    @Override
-    public String toString() {
+    public String toString(WordDataset wd) {
 
         // Write K M.
         String s = "# K M\n";
@@ -475,7 +474,7 @@ public class HMM implements Serializable {
         s += "# text\n";
         for (int i = 0; i < K; i++) {
             s += "------------------------------ State " + i + "------------------------------\n";
-            s += textModel[i].getWordDistribution(Database.wd, 20) + "\n";  // Output the top 20 words.
+            s += textModel[i].getWordDistribution(wd, 20) + "\n";  // Output the top 20 words.
         }
         return s;
     }
@@ -495,9 +494,9 @@ public class HMM implements Serializable {
         oos.close();
     }
 
-    public void write(String outputFile) throws Exception {
+    public void write(WordDataset wd, String outputFile) throws Exception {
         BufferedWriter bw = new BufferedWriter(new FileWriter(outputFile, false));
-        bw.append(this.toString());
+        bw.append(this.toString(wd));
         bw.close();
     }
 

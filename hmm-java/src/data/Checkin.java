@@ -39,6 +39,10 @@ public class Checkin implements Serializable {
   public Map<Integer, Integer> getMessage() {
     return message;
   }
+  
+  public void setMessage(Map<Integer, Integer> message) {
+	    this.message = message;
+  }
 
   // Get the text of the message and the description of the location
   public String getText(WordDataset wd) {

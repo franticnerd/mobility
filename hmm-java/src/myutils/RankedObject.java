@@ -1,5 +1,6 @@
 package myutils;
 
+//for sorting a list
 public class RankedObject implements Comparable<RankedObject> {
 	public Object name;
 	public double score;

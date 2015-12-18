@@ -4,6 +4,7 @@ import data.Checkin;
 import data.Sequence;
 import model.HMM;
 import myutils.ScoreCell;
+import org.apache.commons.math3.linear.ArrayRealVector;
 import org.apache.commons.math3.linear.RealVector;
 
 import java.util.ArrayList;
@@ -24,14 +25,17 @@ public class HMMPredictor extends Predictor {
     public ScoreCell calcScore(Sequence m, Checkin p) {
         Checkin startPlace = m.getCheckin(0);
         List<RealVector> geo = new ArrayList<RealVector>();
+        List<RealVector> temporal = new ArrayList<RealVector>();
         List<Map<Integer,Integer>> text = new ArrayList<Map<Integer, Integer>>();
         geo.add(startPlace.getLocation().toRealVector());
+        temporal.add(new ArrayRealVector(new double[]{startPlace.getTimestamp() % 1440}));
         text.add(startPlace.getMessage());
         geo.add(p.getLocation().toRealVector());
+        temporal.add(new ArrayRealVector(new double[]{p.getTimestamp() % 1440}));
         text.add(p.getMessage());
-        double score = model.calcLL(geo, text);
-        int placeId = p.getId();
-        return new ScoreCell(placeId, score);
+        double score = model.calcLL(geo, temporal, text);
+        int checkinId = p.getId();
+        return new ScoreCell(checkinId, score);
     }
 
     public void printAccuracy() {

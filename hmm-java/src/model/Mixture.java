@@ -51,7 +51,7 @@ public class Mixture extends HMM {
             mStep(data);
             calcTotalLL(data);
             System.out.println("Mixture model finished iteration " + iter + ". Log-likelihood:" + totalLL);
-            if(Math.abs(totalLL - prevLL) <= 0.1)
+            if(Math.abs(totalLL - prevLL) <= 0.01)
                 break;
             prevLL = totalLL;
         }
@@ -91,8 +91,8 @@ public class Mixture extends HMM {
 //            }
 
             kappa[r][0]= log(1.0 - lambda);
-            kappa[r][0] += backgroundModel.calcLL(data.getGeoDatum(2*r), data.getTextDatum(2*r),
-                    data.getGeoDatum(2*r + 1), data.getTextDatum(2*r + 1));
+            kappa[r][0] += backgroundModel.calcLL(data.getGeoDatum(2*r), data.getTemporalDatum(2*r), data.getTextDatum(2*r),
+                    data.getGeoDatum(2*r + 1), data.getTemporalDatum(2*r + 1), data.getTextDatum(2*r + 1));
 
             // HMM LL
             kappa[r][1]= log(lambda);
@@ -113,6 +113,7 @@ public class Mixture extends HMM {
         updateA();
         updateTextModel(data);
         updateGeoModel(data);
+        updateTemporalModel(data);
     }
 
     protected void updateLambda() {
@@ -176,6 +177,17 @@ public class Mixture extends HMM {
         }
     }
 
+
+    protected void updateTemporalModel(SequenceDataset data) {
+        for(int k=0; k<K; k++) {
+            List<Double> weights = new ArrayList<Double>();
+            for (int r=0; r<R; r++)
+                for (int n=0; n<2; n++)
+                    weights.add(kappa[r][1]*gamma[r][n][k]);
+            temporalModel[k].fit(data.getTemporalData(), weights);
+        }
+    }
+
     protected void updateC() {
         for (int k=0; k<K; k++) {
             double denominator = 0;
@@ -203,8 +215,8 @@ public class Mixture extends HMM {
             double hmmLL = 0;
             for (int n=0; n<2; n++)
                 hmmLL += con[r][n] + scalingFactor[r][n];
-            double backgroundLL = backgroundModel.calcLL(data.getGeoDatum(2 * r), data.getTextDatum(2 * r),
-                    data.getGeoDatum(2 * r + 1), data.getTextDatum(2 * r + 1));
+            double backgroundLL = backgroundModel.calcLL(data.getGeoDatum(2 * r), data.getTemporalDatum(2*r), data.getTextDatum(2 * r),
+                    data.getGeoDatum(2 * r + 1), data.getTemporalDatum(2 * r + 1), data.getTextDatum(2 * r + 1));
             double mixtureProb = lambda * exp(hmmLL) + (1 - lambda) * exp(backgroundLL);
             totalLL += log(mixtureProb);
         }
@@ -234,17 +246,8 @@ public class Mixture extends HMM {
     public DBObject toBson() {
         DBObject o = super.toBson();
         o.put("lambda", lambda);
-//        o.put("background", backgroundModel.toBson());
         return o;
     }
-
-
-//    public void load(DBObject o) {
-//        super.load(o);
-//        this.lambda = (Double) o.get("lambda");
-//        DBObject bgd = (BasicDBObject) o.get("background");
-//        this.backgroundModel = new Background(bgd);
-//    }
 
     public void load(DBObject background, DBObject o) {
         super.load(o);
@@ -255,54 +258,3 @@ public class Mixture extends HMM {
 }
 
 
-//    protected boolean checkIsNaN() {
-//        boolean isNaN = false;
-//        for (int r=0; r<R; r++)
-//            for (int n=0; n<2; n++)
-//                for (int k=0; k<K; k++) {
-//                    if (Double.isNaN(ll[r][n][k])) {
-//                        isNaN = true;
-//                        System.out.println("ll[r][n][k] is not a number!" + r + " " + n + " " + k + "\n");
-//                    }
-//                    if (Double.isNaN(alpha[r][n][k])) {
-//                        isNaN = true;
-//                        System.out.println("alpha[r][n][k] is not a number!" + r + " " + n + " " + k + "\n");
-//                    }
-//                    if (Double.isNaN(beta[r][n][k])) {
-//                        isNaN = true;
-//                        System.out.println("beta[r][n][k] is not a number!" + r + " " + n + " " + k + "\n");
-//                    }
-//                    if (Double.isNaN(gamma[r][n][k])) {
-//                        isNaN = true;
-//                        System.out.println("gamma[r][n][k] is not a number!" + r + " " + n + " " + k + "\n");
-//                    }
-//                }
-//        for (int r=0; r<R; r++)
-//            for (int j=0; j<K; j++)
-//                for (int k=0; k<K; k++)
-//                    if (Double.isNaN(xi[r][j][k])) {
-//                        isNaN = true;
-//                        System.out.println("xi[r][j][k] is not a number!" + r + " " + j + " " + k + "\n");
-//                    }
-//        for (int r=0; r<R; r++)
-//            for (int n=0; n<2; n++) {
-//                if (Double.isNaN(con[r][n])) {
-//                    isNaN = true;
-//                    System.out.println("con[r][n] is not a number!" + r + " " + n + "\n");
-//                }
-//                if (Double.isNaN(scalingFactor[r][n])) {
-//                    isNaN = true;
-//                    System.out.println("scalingFactor[r][n] is not a number!" + r + " " + n + "\n");
-//                }
-//            }
-//        for (int r=0; r<R; r++)
-//            for (int n=0; n<2; n++)
-//                for (int k=0; k<K; k++)
-//                    for (int m=0; m<M; m++) {
-//                        if (Double.isNaN(rho[r][n][k][m])) {
-//                            isNaN = true;
-//                            System.out.println("rho[r][n][k] is not a number!" + r + " " + n + " " + k + " " + m + "\n");
-//                        }
-//                    }
-//        return isNaN;
-//    }

@@ -1,11 +1,14 @@
 package demo;
 
 import data.CheckinDataset;
+import data.PredictionDataset;
 import data.SequenceDataset;
 import data.WordDataset;
 import model.Background;
 import model.HMM;
 import model.Mixture;
+import predict.DistancePredictor;
+import predict.HMMPredictor;
 
 import java.util.Map;
 
@@ -36,8 +39,9 @@ public class Demo {
         // load data
         String wordFile = (String) ((Map)((Map)config.get("file")).get("input")).get("words");
         String sequenceFile = (String) ((Map)((Map)config.get("file")).get("input")).get("sequences");
+        double testRatio = (Double)((Map)config.get("predict")).get("testRatio");
         wd.load(wordFile);
-        hmmd.load(sequenceFile);
+        hmmd.load(sequenceFile, testRatio);
         hmmd.setNumWords(wd.size());
         bgd.load(hmmd);
     }
@@ -90,84 +94,32 @@ public class Demo {
         }
     }
 
+    /** ---------------------------------- Predict ---------------------------------- **/
+    public static void predict() throws Exception {
+        double distThre = (Double)((Map)config.get("predict")).get("distThre");
+        double timeThre = (Double)((Map)config.get("predict")).get("timeThre");
+        int K = (Integer)((Map)config.get("predict")).get("K");
+        PredictionDataset pd = hmmd.extractTestData();
+        pd.genCandidates(distThre, timeThre);
+        DistancePredictor dp = new DistancePredictor();
+        dp.predict(pd, K);
+        dp.printAccuracy();
+        HMMPredictor hp = new HMMPredictor(h);
+        hp.predict(pd, K);
+        hp.printAccuracy();
+        HMMPredictor mp = new HMMPredictor(m);
+        mp.predict(pd, K);
+        mp.printAccuracy();
+    }
 
     /** ---------------------------------- Main ---------------------------------- **/
     public static void main(String [] args) throws Exception {
-        String paraFile = args.length > 0 ? args[0] : "../run/ny40k.yaml";
+        String paraFile = args.length > 0 ? args[0] : "../run/4sq.yaml";
         init(paraFile);
         train();
         writeModels();
+        predict();
     }
 
 }
 
-
-// /** ---------------------------------- Predict ---------------------------------- **/
-//     public static void predict(HMM h, Mixture m) throws Exception {
-//         genTestSequences(pc);
-//         int K = pc.getIntPara("numPrediction");
-//         MovementDB mdb = new MovementDB();
-//         mdb.load(pc.getStringPara("labeledSeqFile"));
-//         mdb.genCandidates();
-//         PopularityPredictor pp = new PopularityPredictor();
-//         pp.predict(mdb, K);
-//         pp.printAccuracy();
-//         DistancePredictor dp = new DistancePredictor();
-//         dp.predict(mdb, K);
-//         dp.printAccuracy();
-//         HMMPredictor hp = new HMMPredictor(h);
-//         hp.predict(mdb, K);
-//         hp.printAccuracy();
-//         HMMPredictor mp = new HMMPredictor(m);
-//         mp.predict(mdb, K);
-//         mp.printAccuracy();
-//     }
-
-//     public static void genTestSequences(ParaConfig pc) throws Exception {
-//         SequenceDataset hmmd = new SequenceDataset();
-//         hmmd.load(pc);
-//         hmmd.writeTestSequences(pc.getStringPara("labeledSeqFile"), pc.getIntPara("numLabelSequence"));
-//     }
-
-//     /** ---------------------------------- Outlier ---------------------------------- **/
-//     public static void detectOutlier(ParaConfig pc, HMM h, Mixture m) throws Exception {
-//         int K = pc.getIntPara("numOutlier");
-//         MovementDB mdb = new MovementDB();
-//         mdb.load(pc.getStringPara("labeledSeqFile"));
-//         mdb.genCandidates();
-//         HMMDetector hd = new HMMDetector(m);
-//         hd.detect(mdb, K);
-//         hd.printOutliers();
-//     }
-
-//    static Background loadBackground() throws Exception {
-//        if ((((Map)config.get("model")).get("loadSource")).equals("db")) {
-//            return mongo.loadBackground();
-//        } else {
-//            String modelFile = (String) ((Map) ((Map) config.get("file")).get("output")).get("bg_model");
-//            Background b = Background.load(modelFile);
-//            System.out.println("Finished training background model.");
-//            return b;
-//        }
-//    }
-//
-//    static HMM loadHMM() throws Exception {
-//        if ((((Map)config.get("model")).get("loadSource")).equals("db")) {
-//            return mongo.loadHMM();
-//        } else {
-//            String modelFile = (String) ((Map) ((Map) config.get("file")).get("output")).get("hmm_model");
-//            HMM h = HMM.load(modelFile);
-//            System.out.println("Finished loading HMM.");
-//            return h;
-//        }
-//    }
-//    static Mixture loadMixture() throws Exception {
-//        if ((((Map)config.get("model")).get("loadSource")).equals("db")) {
-//            return mongo.loadMixture();
-//        } else {
-//            String modelFile = (String) ((Map) ((Map) config.get("file")).get("output")).get("mixture_model");
-//            Mixture m = Mixture.load(modelFile);
-//            System.out.println("Finished loading the Mixture model.");
-//            return m;
-//        }
-//    }

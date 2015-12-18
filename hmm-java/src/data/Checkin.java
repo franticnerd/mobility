@@ -54,4 +54,18 @@ public class Checkin implements Serializable {
     return s;
   }
 
+  @Override
+  public int hashCode() {
+    return new Integer(checkinId).hashCode();
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (!(obj instanceof Checkin))
+      return false;
+    if (obj == this)
+      return true;
+    return checkinId == ((Checkin) obj).getId();
+  }
+
 }

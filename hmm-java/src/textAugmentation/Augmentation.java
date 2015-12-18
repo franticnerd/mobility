@@ -37,10 +37,10 @@ public class Augmentation {
 		}
 		Categorical c1 = new Categorical(word2idf);
 		for (int i = 0; i < sampleNum; ++i) {
-			int word = (int) c1.sample();
+			int word = (Integer) c1.sample();
 			if (similarities.containsKey(word)) {
 				Categorical c2 = new Categorical(similarities.get(word));
-				int addedWord = (int) c2.sample();
+				int addedWord = (Integer) c2.sample();
 				if (!augmentedText.containsKey(addedWord)) {
 					augmentedText.put(addedWord, 0);
 				}

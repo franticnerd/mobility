@@ -1,12 +1,14 @@
 package predict;
 
 import data.Checkin;
+import data.PredictionDataset;
 import data.Sequence;
 import data.SequenceDataset;
 import myutils.ScoreCell;
 import myutils.TopKSearcher;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * An abstract class for predicting next location.
@@ -16,13 +18,12 @@ public abstract class Predictor {
 
     double accuracy = 0;
 
-
     // Input: a database of length-2 movements;
-    public void predict(SequenceDataset mdb, int K) {
+    public void predict(PredictionDataset mdb, int K) {
         int numCorrectPrediction = 0;
         for (int i=0; i<mdb.size(); i++) {
-            Sequence m = mdb.getSequence(i);
-            List<Checkin> candidate = mdb.getCandidate(i);
+            Sequence m = mdb.getSeq(i);
+            Set<Checkin> candidate = mdb.getCands(i);
             TopKSearcher tks = new TopKSearcher();
             tks.init(K);
             for (Checkin p : candidate) {
@@ -33,9 +34,9 @@ public abstract class Predictor {
             topKResults = tks.getTopKList(topKResults);
             if (isCorrect(m, topKResults)) {
                 numCorrectPrediction ++;
-                System.out.println(candidate.size() + " +");
+//                System.out.println(candidate.size() + " +");
             } else {
-                System.out.println(candidate.size() + " -");
+//                System.out.println(candidate.size() + " -");
             }
         }
         accuracy = (double) numCorrectPrediction / (double) mdb.size();

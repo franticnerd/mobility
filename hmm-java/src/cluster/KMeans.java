@@ -1,5 +1,6 @@
 package cluster;
 
+import myutils.ArrayUtils;
 import org.apache.commons.math3.linear.ArrayRealVector;
 import org.apache.commons.math3.linear.RealVector;
 
@@ -23,21 +24,60 @@ public class KMeans{
 	}
 
 	public List<Integer> [] cluster(List<RealVector> data, List<Double> weights, int K) {
-
 		if(data.size() < K) {
 			System.out.println("Warning: fewer data points than the cluster number.");
 			this.nCluster = data.size();
 		}
 		initialize(data, weights, K);
-
 		for (int iteration = 0; iteration < maxIter; iteration++) {
 			computeMean();
 			if( !hasMeanChanged() )
 				break;
 			assignToClusters();
 		}
-		
 		return clusters;
+	}
+
+	// cluster based on both attribute 1 and attribute 2.
+	public List<Integer> [] cluster(List<RealVector> attr1, List<RealVector> attr2, List<Double> weights, int K) {
+		if(attr1.size() != attr2.size()) {
+			System.out.println("Attribute length not equal.");
+			return null;
+		}
+		List<RealVector> data = mergeData(attr1, attr2);
+		return cluster(data, weights, K);
+	}
+
+    // normalize and merge the attributes.
+	private List<RealVector> mergeData(List<RealVector> attr1, List<RealVector> attr2) {
+		List<RealVector> normal1 = normalize(attr1);
+		List<RealVector> normal2 = normalize(attr2);
+		List<RealVector> data = new ArrayList<RealVector>();
+		for (int i = 0; i < normal1.size(); i++) {
+			RealVector rv = new ArrayRealVector((ArrayRealVector)normal1.get(i), normal2.get(i));
+			data.add(rv);
+		}
+		return data;
+	}
+
+	private List<RealVector> normalize(List<RealVector> attr) {
+		// clone the input data.
+		List<RealVector> normalizedData = new ArrayList<RealVector>();
+		for (RealVector rv : attr)
+			normalizedData.add(rv.copy());
+		// normalize
+		int dim = attr.get(0).getDimension();
+		for (int i = 0; i < dim; i++) {
+			double [] dimNormalData = new double[attr.size()];
+			for (int j = 0; j < attr.size(); j++) {
+				dimNormalData[j] = attr.get(j).getEntry(i);
+			}
+			ArrayUtils.normalizeZeroOne(dimNormalData);
+			for (int j = 0; j < attr.size(); j++) {
+				normalizedData.get(j).setEntry(i, dimNormalData[j]);
+			}
+		}
+		return normalizedData;
 	}
 
 

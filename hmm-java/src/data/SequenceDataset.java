@@ -1,5 +1,7 @@
 package data;
 
+
+import org.apache.commons.math3.linear.ArrayRealVector;
 import org.apache.commons.math3.linear.RealVector;
 
 import java.io.*;
@@ -11,25 +13,39 @@ import java.util.*;
  */
 public class SequenceDataset {
 
-    List<Sequence> sequences;
-    List<Map<Integer, Integer>> textData;  // The text data for the R sequences, the length is 2R
+    // training data
+    List<Sequence> trainseqs;
+    List<Map<Integer, Integer>> textData;  // The text data for the R trainseqs, the length is 2R
     List<RealVector> geoData;  // The geographical data for the R seqeunces, length 2R
+    List<RealVector> temporalData;  // The temporal data for the R seqeunces, length 2R
     int numWords;
+    // test data
+    double testRatio;
+    List<Sequence> testSeqs;
 
     public void load(String sequenceFile) throws IOException {
-        sequences = new ArrayList<Sequence>();
+        testRatio = 0;
+        load(sequenceFile, 0);
+    }
+
+    public void load(String sequenceFile, double testRatio) throws IOException {
+        this.testRatio = testRatio;
+        List<Sequence> allSeqs = new ArrayList<Sequence>();
         BufferedReader br = new BufferedReader(new FileReader(sequenceFile));
         while(true) {
             String line = br.readLine();
             if(line == null) break;
             Sequence seq = parseSequence(line);
-            sequences.add(seq);
+            allSeqs.add(seq);
         }
         br.close();
-        // Geo and text data.
+        trainseqs = allSeqs.subList(0, (int)(allSeqs.size() * ( 1- testRatio)));
+        testSeqs = allSeqs.subList((int)(allSeqs.size() * ( 1- testRatio)), allSeqs.size());
+        // Geo, temporal and text data.
         geoData = new ArrayList<RealVector>();
+        temporalData = new ArrayList<RealVector>();
         textData = new ArrayList<Map<Integer, Integer>>();
-        for (Sequence sequence : sequences) {
+        for (Sequence sequence : trainseqs) {
             if (sequence.size() != 2) {
                 System.out.println("Warning! The sequence's length is not 2.");
             }
@@ -37,9 +53,10 @@ public class SequenceDataset {
             for (Checkin c : checkins) {
                 geoData.add(c.getLocation().toRealVector());
                 textData.add(c.getMessage());
+                temporalData.add(new ArrayRealVector(new double[] {c.getTimestamp() % 1440})); // get the minutes of the timestamp.
             }
         }
-        System.out.println("Loading geo and textual data finished.");
+        System.out.println("Loading geo, temporal, and textual data finished.");
     }
 
     public void setNumWords(int numWords) {
@@ -86,11 +103,15 @@ public class SequenceDataset {
     }
 
     public List<Sequence> getSequences() {
-        return sequences;
+        return trainseqs;
     }
 
     public List<RealVector> getGeoData() {
         return geoData;
+    }
+
+    public List<RealVector> getTemporalData() {
+        return temporalData;
     }
 
     public List<Map<Integer, Integer>> getTextData() {
@@ -101,55 +122,28 @@ public class SequenceDataset {
         return geoData.get(index);
     }
 
+    public RealVector getTemporalDatum(int index) {
+        return temporalData.get(index);
+    }
+
     public Map<Integer, Integer> getTextDatum(int index) {
         return textData.get(index);
     }
 
     public Sequence getSequence(int i) {
-        return sequences.get(i);
+        return trainseqs.get(i);
     }
 
     public int size() {
-        return sequences.size();
+        return trainseqs.size();
     }
 
     public int numWords() {
         return numWords;
     }
 
-//    public List<Sequence> extractTestSequences(int size) throws Exception {
-//        List<Sequence> testSeqs = new ArrayList<Sequence>();
-//        int[] indices = ArrayUtils.genKRandomNumbers(sequences.size(), size);
-//        for (int i = 0; i < indices.length; i++) {
-//            int index = indices[i];
-//            Sequence s = sequences.get(index);
-//            testSeqs.add(s);
-//        }
-//        return testSeqs;
-//    }
-
-//    public List<Sequence> extractTestSequences(int size) throws Exception {
-//        List<Sequence> testSeqs = new ArrayList<Sequence>();
-//        for (int i = 0; i < size; i++) {
-//            int index = sequences.size() - size + i;
-//            Sequence s = sequences.get(index);
-//            testSeqs.add(s);
-//        }
-//        return testSeqs;
-//    }
-
-    public List<Sequence> extractTestSequences(int size) throws Exception {
-        List<Sequence> testSeqs = new ArrayList<Sequence>();
-        return testSeqs.subList((int)(sequences.size() * 0.8), sequences.size());
-    }
-
-    // get the candidate location for the target sequence
-    public List<Checkin> getCandidate(int i) {
-        List<Checkin> ret = new ArrayList<Checkin>();
-        for(Sequence s : sequences) {
-            ret.add(s.getCheckin(1));
-        }
-        return ret;
+    public PredictionDataset extractTestData() throws Exception {
+        return new PredictionDataset(testSeqs);
     }
 
 }

@@ -91,31 +91,40 @@ public class Gaussian implements Serializable {
     }
 
     private void calcVarInverse() {
-        boolean inverseFinished = false;
-        int counter = 0;
-        while (inverseFinished == false) {
-            if (Math.abs(var.getEntry(0, 0)) <= 1e-6)
+        if(dimension == 1) {
+            if(Math.abs(var.getEntry(0, 0)) <= 1e-6)
                 var.setEntry(0, 0, 1e-5);
-            if (Math.abs(var.getEntry(1, 1)) <= 1e-6)
-                var.setEntry(1, 1, 1e-5);
-            if (counter >= 5) {
-                var.setEntry(0, 1, 0);
-                var.setEntry(1, 0, 0);
-                varInverse = new LUDecomposition(var).getSolver().getInverse();
-                break;
+            varInverse = new LUDecomposition(var).getSolver().getInverse();
+            varDeterminant = new LUDecomposition(var).getDeterminant();
+        } else if (dimension == 2) {
+            boolean inverseFinished = false;
+            int counter = 0;
+            while (inverseFinished == false) {
+                if (Math.abs(var.getEntry(0, 0)) <= 1e-6)
+                    var.setEntry(0, 0, 1e-5);
+                if (Math.abs(var.getEntry(1, 1)) <= 1e-6)
+                    var.setEntry(1, 1, 1e-5);
+                if (counter >= 5) {
+                    var.setEntry(0, 1, 0);
+                    var.setEntry(1, 0, 0);
+                    varInverse = new LUDecomposition(var).getSolver().getInverse();
+                    break;
+                }
+                try {
+                    varInverse = new LUDecomposition(var).getSolver().getInverse();
+                    inverseFinished = true;
+                } catch (Exception e) {
+                    System.out.println("Error when computing the inverse of" + var);
+                    var.setEntry(0, 0, var.getEntry(0, 0) * 1.01);
+                    var.setEntry(1, 1, var.getEntry(1, 1) * 1.01);
+                    System.out.println("The matrix is changed to" + var);
+                }
+                counter++;
             }
-            try {
-                varInverse = new LUDecomposition(var).getSolver().getInverse();
-                inverseFinished = true;
-            } catch (Exception e) {
-                System.out.println("Error when computing the inverse of" + var);
-                var.setEntry(0, 0, var.getEntry(0, 0) * 1.01);
-                var.setEntry(1, 1, var.getEntry(1, 1) * 1.01);
-                System.out.println("The matrix is changed to" + var);
-            }
-            counter ++;
+            varDeterminant = new LUDecomposition(var).getDeterminant();
+        } else {
+            System.out.println("Fitting Gaussian Warning: dimension larger than 2!");
         }
-        varDeterminant = new LUDecomposition(var).getDeterminant();
         CONSTANT = - dimension / 2.0 * Math.log(2*Math.PI) - 0.5 * Math.log( varDeterminant );
     }
 

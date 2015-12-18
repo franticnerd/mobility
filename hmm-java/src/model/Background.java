@@ -34,6 +34,7 @@ public class Background implements Serializable {
     double [] pi;  // The prior distribution over the latent states.
     Multinomial[] textModel;
     Gaussian[] geoModel;
+    Gaussian[] temporalModel;
 
     public Background(int maxIter) {
         this.maxIter = maxIter;
@@ -51,23 +52,24 @@ public class Background implements Serializable {
             mStep(bgd);
             calcTotalLL(bgd);
             System.out.println("Background model finished iteration " + iter + ". Log-likelihood:" + totalLL);
-            if(Math.abs(totalLL - prevLL) <= 0.1)
+            if(Math.abs(totalLL - prevLL) <= 0.01)
                 break;
             prevLL = totalLL;
         }
     }
 
     /**
-     * Step 1: initialize the data, and geo and text models.
+     * Step 1: initialize the data, and geo, temporal, and text models.
      */
     private void init(CheckinDataset bgd, int K) {
         this.N = bgd.numPlace();
         this.V = bgd.numWord();
         this.K = K;
         KMeans kMeans = new KMeans(500);
-        List<Integer> [] kMeansResults = kMeans.cluster(bgd.getGeoData(), bgd.getWeights(), K);
+        List<Integer> [] kMeansResults = kMeans.cluster(bgd.getGeoData(), bgd.getTemporalData(), bgd.getWeights(), K);
         initPi(kMeansResults, bgd);
         initGeoModel(kMeansResults, bgd);
+        initTemporalModel(kMeansResults, bgd);
         initTextModel(kMeansResults, bgd);
         gamma = new double[N][K];
     }
@@ -100,6 +102,23 @@ public class Background implements Serializable {
         }
     }
 
+
+    private void initTemporalModel(List<Integer> [] kMeansResults, CheckinDataset bgd) {
+        this.temporalModel = new Gaussian[K];
+        for(int i=0; i<K; i++) {
+            List<Integer> dataIds = kMeansResults[i];
+            List<RealVector> clusterData = new ArrayList<RealVector>();
+            List<Double> clusterWeights = new ArrayList<Double>();
+            for(int dataId : dataIds) {
+                clusterData.add(bgd.getTemporalDatum(dataId));
+                clusterWeights.add(bgd.getWeight(dataId));
+            }
+            temporalModel[i] = new Gaussian();
+            temporalModel[i].fit(clusterData, clusterWeights);
+        }
+    }
+
+
     private void initTextModel(List<Integer> [] kMeansResults, CheckinDataset bgd) {
         this.textModel = new Multinomial[K];
         for(int i=0; i<K; i++) {
@@ -122,7 +141,7 @@ public class Background implements Serializable {
         // calc probability in the log domain
         for(int i=0; i<N; i++)
             for (int k = 0; k < K; k++)
-                gamma[i][k] = calcLLComponent(bgd.getGeoDatum(i), bgd.getTextDatum(i), k);  // p(k, x)
+                gamma[i][k] = calcLLComponent(bgd.getGeoDatum(i), bgd.getTemporalDatum(i), bgd.getTextDatum(i), k);  // p(k, x)
         // normalize
         for(int i=0; i<N; i++)
             ArrayUtils.logNormalize(gamma[i]);
@@ -137,6 +156,7 @@ public class Background implements Serializable {
         updatePi(bgd);
         updateTextModel(bgd);
         updateGeoModel(bgd);
+        updateTemporalModel(bgd);
     }
 
     private void updatePi(CheckinDataset bgd) {
@@ -168,6 +188,15 @@ public class Background implements Serializable {
         }
     }
 
+    private void updateTemporalModel(CheckinDataset bgd) {
+        for(int k=0; k<K; k++) {
+            List<Double> temporalWeights = new ArrayList<Double>();
+            for (int i=0; i<N; i++) {
+                temporalWeights.add(bgd.getWeight(i) * gamma[i][k]);
+            }
+            temporalModel[k].fit(bgd.getTemporalData(), temporalWeights);
+        }
+    }
 
     /**
      * Utility functions.
@@ -175,13 +204,13 @@ public class Background implements Serializable {
     private void calcTotalLL(CheckinDataset bgd) {
         totalLL = 0;
         for (int i=0; i<N; i++)
-            totalLL += calcLL(bgd.getGeoDatum(i), bgd.getTextDatum(i));
+            totalLL += calcLL(bgd.getGeoDatum(i), bgd.getTemporalDatum(i), bgd.getTextDatum(i));
     }
 
-    public double calcLL(RealVector geoDatum, Map<Integer, Integer> textDatum) {
+    public double calcLL(RealVector geoDatum, RealVector temporalDatum, Map<Integer, Integer> textDatum) {
         double [] lnProb = new double [K];
         for (int k=0; k<K; k++)
-            lnProb[k] = calcLLComponent(geoDatum, textDatum, k);
+            lnProb[k] = calcLLComponent(geoDatum, temporalDatum, textDatum, k);
         double maxLnProb = ArrayUtils.max(lnProb);
         for (int k=0; k<K; k++)
             lnProb[k] -= maxLnProb;
@@ -195,20 +224,21 @@ public class Background implements Serializable {
 
 
     // Calc ln p(x, k)
-    private double calcLLComponent(RealVector geoDatum, Map<Integer, Integer> textDatum, int k) {
+    private double calcLLComponent(RealVector geoDatum, RealVector temporalDatum, Map<Integer, Integer> textDatum, int k) {
         double priorProb = Math.log(pi[k]);
         double geoProb = geoModel[k].calcLL(geoDatum);
+        double temporalProb = temporalModel[k].calcLL(temporalDatum);
         double textProb = textModel[k].calcLL(textDatum);
-        return priorProb + geoProb + textProb;
+        return priorProb + geoProb + temporalProb + textProb;
     }
 
 
     // calc ll for a length-2 sequence
-    public double calcLL(RealVector geoDatumA, Map<Integer, Integer> textDatumA,
-                         RealVector geoDatumB, Map<Integer, Integer> textDatumB) {
+    public double calcLL(RealVector geoDatumA, RealVector temporalDatumA, Map<Integer, Integer> textDatumA,
+                         RealVector geoDatumB, RealVector temporalDatumB, Map<Integer, Integer> textDatumB) {
         double [] lnProb = new double [K];
         for (int k=0; k<K; k++)
-            lnProb[k] = calcLLComponentForSeqs(geoDatumA, textDatumA, geoDatumB, textDatumB, k);
+            lnProb[k] = calcLLComponentForSeqs(geoDatumA, temporalDatumA, textDatumA, geoDatumB, temporalDatumB, textDatumB, k);
         double maxLnProb = ArrayUtils.max(lnProb);
         for (int k=0; k<K; k++)
             lnProb[k] -= maxLnProb;
@@ -222,15 +252,17 @@ public class Background implements Serializable {
 
 
     // Calc ln p(x, k)
-    private double calcLLComponentForSeqs(RealVector geoDatumA, Map<Integer, Integer> textDatumA,
-                                          RealVector geoDatumB, Map<Integer, Integer> textDatumB,
+    private double calcLLComponentForSeqs(RealVector geoDatumA, RealVector temporalDatumA, Map<Integer, Integer> textDatumA,
+                                          RealVector geoDatumB, RealVector temporalDatumB, Map<Integer, Integer> textDatumB,
                                           int k) {
         double priorProb = Math.log(pi[k]);
         double geoProb = geoModel[k].calcLL(geoDatumA);
+        double temporalProb = temporalModel[k].calcLL(temporalDatumA);
         double textProb = textModel[k].calcLL(textDatumA);
         double geoProbB = geoModel[k].calcLL(geoDatumB);
+        double temporalProbB = temporalModel[k].calcLL(temporalDatumB);
         double textProbB = textModel[k].calcLL(textDatumB);
-        return priorProb + geoProb + textProb + geoProbB + textProbB;
+        return priorProb + geoProb + temporalProb + textProb + geoProbB + temporalProbB + textProbB;
     }
 
     public String toString(WordDataset wd) {
@@ -249,6 +281,14 @@ public class Background implements Serializable {
             s += mean.getEntry(0) + " " + mean.getEntry(1) + " ";
             s += var.getEntry(0,0) + " " + var.getEntry(0,1) + " " +
                     var.getEntry(1,0) + " " + var.getEntry(1,1) + "\n";
+        }
+        // Write temporal model.
+        s += "\n# temporal\n";
+        for(int i=0; i<K; i++) {
+            RealVector mean = temporalModel[i].getMean();
+            RealMatrix var = temporalModel[i].getVar();
+            s += mean.getEntry(0) + " ";
+            s += var.getEntry(0, 0) + "\n";
         }
         // Write text model.
         s += "# text\n";
@@ -294,6 +334,10 @@ public class Background implements Serializable {
         for(Gaussian g : geoModel)
             geo.add(g.toBSon());
         o.put("geoModel", geo);
+        List<DBObject> temporal = new ArrayList<DBObject>();
+        for(Gaussian t : temporalModel)
+            temporal.add(t.toBSon());
+        o.put("temporalModel", temporal);
         return o;
     }
 
@@ -317,6 +361,11 @@ public class Background implements Serializable {
         this.geoModel = new Gaussian[text.size()];
         for(int i=0; i<geo.size(); i++)
             this.geoModel[i] = new Gaussian(geo.get(i));
+
+        List<DBObject> temporal = (List<DBObject>) o.get("temporalModel");
+        this.temporalModel = new Gaussian[text.size()];
+        for(int i=0; i<temporal.size(); i++)
+            this.temporalModel[i] = new Gaussian(temporal.get(i));
     }
 
 }

@@ -50,6 +50,7 @@ public class HMM implements Serializable {
     double[][] A;  // The transition matrix for the K latent states.
     Multinomial[] textModel; // The K multinomial models for the text part.
     Gaussian[][] geoModel;  // The K Gaussian mixtures for the latent states, each mixture has M components.
+    Gaussian[] temporalModel;
     double[][] c;  // c[k][m] is the probability of choosing component m for state k;
     // Log likelihood.
     double[][][] ll;  // ll[r][n][k] is the log-likelihood p(x[r][n]|k).
@@ -68,7 +69,7 @@ public class HMM implements Serializable {
             mStep(data);
             calcTotalLL();
             System.out.println("HMM finished iteration " + iter + ". Log-likelihood:" + totalLL);
-            if(Math.abs(totalLL - prevLL) <= 0.1)
+            if(Math.abs(totalLL - prevLL) <= 0.01)
                 break;
             prevLL = totalLL;
         }
@@ -109,6 +110,7 @@ public class HMM implements Serializable {
         initA(kMeansResults);
         initTextModel(kMeansResults, data);
         initGeoModel(kMeansResults, data);
+        initTemporalModel(kMeansResults, data);
     }
 
     // Run k-means for the geo data to initialize the params.
@@ -117,7 +119,7 @@ public class HMM implements Serializable {
         for (int i = 0; i < data.getGeoData().size(); i++)
             weights.add(1.0);
         KMeans kMeans = new KMeans(500);
-        return kMeans.cluster(data.getGeoData(), weights, K);
+        return kMeans.cluster(data.getGeoData(), data.getTemporalData(), weights, K);
     }
 
     // numDataPoints is 2R.
@@ -201,6 +203,21 @@ public class HMM implements Serializable {
         }
     }
 
+    // Initialize the temporal model and c
+    protected void initTemporalModel(List<Integer>[] kMeansResults, SequenceDataset data) {
+        this.temporalModel = new Gaussian[K];  // K states, each having M components
+        for (int k = 0; k < K; k++) {
+            List<RealVector> clusterData = new ArrayList<RealVector>();
+            List<Double> clusterWeights = new ArrayList<Double>();
+            List<Integer> dataIds = kMeansResults[k];
+            for (int dataId : dataIds) {
+                clusterData.add(data.getTemporalDatum(dataId));
+                clusterWeights.add(1.0);
+            }
+            temporalModel[k] = new Gaussian();
+            temporalModel[k].fit(clusterData, clusterWeights);
+        }
+    }
 
     /**
      * Step 2: learning the parameters using EM: E-Step.
@@ -220,7 +237,8 @@ public class HMM implements Serializable {
         for (int r = 0; r < R; r++)
             for (int n = 0; n < 2; n++)
                 for (int k = 0; k < K; k++)
-                    ll[r][n][k] = calcLLState(data.getGeoDatum(2 * r + n), data.getTextDatum(2 * r + n), k);
+                    ll[r][n][k] = calcLLState(data.getGeoDatum(2 * r + n), data.getTemporalDatum(2*r + n),
+                            data.getTextDatum(2 * r + n), k);
     }
 
     protected void scaleLL() {
@@ -325,6 +343,7 @@ public class HMM implements Serializable {
         updateA();
         updateTextModel(data);
         updateGeoModel(data);
+        updateTemporalModel(data);
     }
 
 
@@ -377,6 +396,7 @@ public class HMM implements Serializable {
         }
     }
 
+
     protected void updateC() {
         for (int k = 0; k < K; k++) {
             double denominator = 0;
@@ -393,14 +413,27 @@ public class HMM implements Serializable {
         }
     }
 
+
+    protected void updateTemporalModel(SequenceDataset data) {
+        for (int k = 0; k < K; k++) {
+            List<Double> weights = new ArrayList<Double>();
+            for (int r = 0; r < R; r++)
+                for (int n = 0; n < 2; n++)
+                    weights.add(gamma[r][n][k]);
+            temporalModel[k].fit(data.getTemporalData(), weights);
+        }
+    }
+
     /**
      * Functions for computing probabilities
      */
     // Calc the likelihood that the given data is generated from state k
-    protected double calcLLState(RealVector geoDatum, Map<Integer, Integer> textDatum, int k) {
+    protected double calcLLState(RealVector geoDatum, RealVector temporalDatum,
+                                 Map<Integer, Integer> textDatum, int k) {
         double textProb = textModel[k].calcLL(textDatum);
         double geoProb = calcGeoLLState(geoDatum, k);
-        return geoProb + textProb;
+        double temporalProb = temporalModel[k].calcLL(temporalDatum);
+        return geoProb + temporalProb + textProb;
     }
 
     // Calc the probability that v is generated from the gmm of state k.
@@ -470,6 +503,15 @@ public class HMM implements Serializable {
             }
         }
 
+        // write temporal model.
+        s += "# temporal\n";
+        for(int i=0; i<K; i++) {
+            RealVector mean = temporalModel[i].getMean();
+            RealMatrix var = temporalModel[i].getVar();
+            s += mean.getEntry(0) + " ";
+            s += var.getEntry(0, 0) + "\n";
+        }
+
         // Write text model.
         s += "# text\n";
         for (int i = 0; i < K; i++) {
@@ -504,7 +546,7 @@ public class HMM implements Serializable {
     /**
      * Compute the ll of a test sequence.
      */
-    public double calcLL(List<RealVector> geo, List<Map<Integer, Integer>> text) {
+    public double calcLL(List<RealVector> geo, List<RealVector> temporal, List<Map<Integer, Integer>> text) {
         double[][] ll = new double[2][K];  // ll[n][k] is the log-likelihood p(x[n]|k).
         double[] scalingFactor = new double[2];  // scalingFactor[n] is chosen from ll[n].
         double[][] alpha = new double[2][K]; // alpha[n][k] is for the n-th position of sequence r at state k.
@@ -512,7 +554,7 @@ public class HMM implements Serializable {
         // calc LL
         for (int n = 0; n < 2; n++)
             for (int k = 0; k < K; k++)
-                ll[n][k] = calcLLState(geo.get(n), text.get(n), k);
+                ll[n][k] = calcLLState(geo.get(n), temporal.get(n), text.get(n), k);
         // Find the scaling factors.
         for (int n = 0; n < 2; n++)
             scalingFactor[n] = ArrayUtils.max(ll[n]);
@@ -569,6 +611,10 @@ public class HMM implements Serializable {
             geo.add(gmmdata);
         }
         o.put("geoModel", geo);
+        List<DBObject> temporal = new ArrayList<DBObject>();
+        for(Gaussian t : temporalModel)
+            temporal.add(t.toBSon());
+        o.put("temporalModel", temporal);
         return o;
     }
 
@@ -616,6 +662,11 @@ public class HMM implements Serializable {
                 geoModel[i][j] = g;
             }
         }
+
+        List<DBObject> temporal = (List<DBObject>) o.get("temporalModel");
+        this.temporalModel = new Gaussian[text.size()];
+        for(int i=0; i<temporal.size(); i++)
+            this.temporalModel[i] = new Gaussian(temporal.get(i));
     }
 
 }

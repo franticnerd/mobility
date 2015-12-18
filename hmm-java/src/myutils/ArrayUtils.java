@@ -24,6 +24,20 @@ public class ArrayUtils {
         return maxValue;
     }
 
+    // Find the min value of an array.
+    public static double min(double [] data) {
+        if (data.length == 0) {
+            System.out.println("Error when finding the min value. Array length is 0!");
+            System.exit(1);
+        }
+        double minValue = data[0];
+        for (int i=0; i<data.length; i++) {
+            if (data[i] < minValue)
+                minValue = data[i];
+        }
+        return minValue;
+    }
+
     // Find the sum of the array
     public static double sum(double [] data) {
         if (data.length == 0) {
@@ -55,7 +69,7 @@ public class ArrayUtils {
         return Math.log(sumValue) + maxValue;
     }
 
-    // Normalize the array
+    // Normalize the array by sum
     public static void normalize(double [] data) {
         if (data.length == 0) {
             System.out.println("Error when normalizing. Array length is 0!");
@@ -68,6 +82,20 @@ public class ArrayUtils {
         }
         for (int i=0; i<data.length; i++)
             data[i] /= sumValue;
+    }
+
+
+    // Normalize the array to the range [0, 1]
+    public static void normalizeZeroOne(double [] data) {
+        if (data.length == 0) {
+            System.out.println("Error when zero-one normalizing. Array length is 0!");
+            System.exit(1);
+        }
+        double maxValue = max(data);
+        double minValue = min(data);
+        if(minValue == maxValue)    return;
+        for (int i=0; i<data.length; i++)
+            data[i] = (data[i] - minValue) / (maxValue - minValue);
     }
 
     // Input: an array in the log domain; Output: the ratio in the exp domain

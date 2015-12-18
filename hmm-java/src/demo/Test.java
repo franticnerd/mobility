@@ -30,7 +30,7 @@ public class Test {
 		hmmd.setNumWords(wd.size());
 
 		WordSimilarity ws = new WordSimilarity(hmmd, wd);
-		ws.printHighlySimilarPairs();
+//		ws.printHighlySimilarPairs();
 		ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(WorkPath + "results/similarity.dat"));
 		oos.writeObject(ws);
 		oos.flush();

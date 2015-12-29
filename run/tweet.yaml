@@ -27,7 +27,7 @@ preprocess:
   source: db
   startTime: 2014-07-31 00:00:00
   endTime: 2014-08-31 00:00:00
-  minGap: 90
+  minGap: 60
   maxGap: 240
 
 
@@ -41,10 +41,12 @@ model:
     numComponent: 1
 
 
-predict:
-  numPrediction: 10
-  numSequence: 1000
 
+predict:
+  testRatio: 0.2
+  distThre: 3.0
+  timeThre: 240.0
+  K: 3
 
 post:
   keyword:

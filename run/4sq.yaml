@@ -33,18 +33,18 @@ preprocess:
 
 model:
   train: yes
-  maxIter: 10
+  maxIter: 200
   background:
-    numState: 30
+    numState: 100
   hmm:
-    numState: 30
+    numState: 100
     numComponent: 1
 
-
 predict:
-  numPrediction: 10
-  numSequence: 1000
-
+  testRatio: 0.2
+  distThre: 3.0
+  timeThre: 240.0
+  K: 3
 
 post:
   keyword:

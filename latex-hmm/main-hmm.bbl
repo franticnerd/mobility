@@ -1,0 +1,19 @@
+\begin{thebibliography}{1}
+
+\bibitem{alvares2007}
+L.~O. Alvares, V.~Bogorny, B.~Kuijpers, B.~Moelans, J.~A. Fern, E.~D. Macedo,
+  and A.~T. Palma.
+\newblock Towards semantic trajectory knowledge discovery.
+\newblock {\em Data Mining and Knowledge Discovery}, 2007.
+
+\bibitem{Josh11}
+J.~J.-C. Ying, W.-C. Lee, T.-C. Weng, and V.~S. Tseng.
+\newblock Semantic trajectory mining for location prediction.
+\newblock In {\em GIS}, pages 34--43, 2011.
+
+\bibitem{ZhengZYS13}
+K.~Zheng, Y.~Zheng, N.~J. Yuan, and S.~Shang.
+\newblock On discovery of gathering patterns from trajectories.
+\newblock In {\em ICDE}, pages 242--253, 2013.
+
+\end{thebibliography}

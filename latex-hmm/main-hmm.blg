@@ -1,0 +1,58 @@
+This is BibTeX, Version 0.99d (TeX Live 2014)
+Capacity: max_strings=35307, hash_size=35307, hash_prime=30011
+The top-level auxiliary file: main-hmm.aux
+The style file: abbrv.bst
+Database file #1: cited.bib
+A bad cross reference---entry "ZhengZYS13"
+refers to entry "DBLP:conf/icde/2013", which doesn't exist
+A bad cross reference---entry "Josh11"
+refers to entry "DBLP:conf/gis/2011", which doesn't exist
+Warning--I didn't find a database entry for "GiannottiNPP07"
+Warning--I didn't find a database entry for "LaubeI02"
+Warning--I didn't find a database entry for "JeungYZJS08"
+Warning--I didn't find a database entry for "LiDHK10"
+Warning--I didn't find a database entry for "MonrealePTG09"
+Warning--I didn't find a database entry for "DBLP:conf/gis/2011"
+Warning--I didn't find a database entry for "DBLP:conf/icde/2013"
+You've used 3 entries,
+            2118 wiz_defined-function locations,
+            530 strings with 4422 characters,
+and the built_in function-call counts, 1383 in all, are:
+= -- 124
+> -- 84
+< -- 2
++ -- 33
+- -- 30
+* -- 97
+:= -- 225
+add.period$ -- 9
+call.type$ -- 3
+change.case$ -- 24
+chr.to.int$ -- 0
+cite$ -- 3
+duplicate$ -- 54
+empty$ -- 97
+format.name$ -- 30
+if$ -- 296
+int.to.chr$ -- 0
+int.to.str$ -- 3
+missing$ -- 3
+newline$ -- 18
+num.names$ -- 6
+pop$ -- 30
+preamble$ -- 1
+purify$ -- 21
+quote$ -- 0
+skip$ -- 44
+stack$ -- 0
+substring$ -- 63
+swap$ -- 21
+text.length$ -- 2
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 12
+warning$ -- 0
+while$ -- 10
+width$ -- 4
+write$ -- 34
+(There were 2 error messages)

@@ -1,0 +1,49 @@
+%! TEX root = main-hmm.tex
+
+\section{Related Work}
+\label{sect:related}
+
+Generally, existing techniques related to our problem can be categorized as follows.
+
+\pa{1ex}{Mobility pattern mining.}
+
+Giannotti \emph{et al.}\ \cite{GiannottiNPP07} define the \emph{T-pattern} in a
+collection of GPS trajectories. A T-pattern is a Region-of-Interest (RoI)
+sequence with temporal annotations, where each RoI as a rectangle whose density
+is larger than a threshold $\delta$. However, their method still relies on
+rigid space partitioning. In addition, the threshold $\delta$ is hard to
+pre-specify for our problem: a small $\delta$ will lead to very coarse regions
+while a large one may eliminate fine-grained patterns.
+
+Another important line in trajectory data mining is to mine a set of objects
+that are frequently co-located. Efforts along this line include mining
+\emph{flock} \cite{LaubeI02}, \emph{convoy} \cite{JeungYZJS08}, \emph{swarm}
+\cite{LiDHK10}, and \emph{gathering} \cite{ZhengZYS13} patterns. All these
+patterns differ from our work in two aspects: (1) they only model the
+spatio-temporal information without considering place semantics; and (2) they
+require the trajectories are aligned by the absolute timestamps to discover
+co-located objects, while we focus on the relative time interval in a
+trajectory.
+
+\pa{1ex}{Location prediction.}
+
+Monreale \etal \cite{MonrealePTG09} proposed a pattern-based location predictor.
+
+\pa{1ex}{Geo-textual data mining.}
+Yin \etal \cite{
+
+\pa{1ex}{Semantic trajectory mining.}
+
+There are a few studies on mining sequential patterns in semantic trajectories.
+Alvares \emph{et al.}\ \cite{alvares2007} first identify the \emph{stops} in
+GPS trajectories, then match these stops to semantic places using a background
+map.  By viewing each place as an item, they extract the frequent place
+sequences as sequential patterns.  Unfortunately, due to spatial continuity,
+such place-level sequential patterns can appear only when the support threshold
+is very low. Ying \emph{et al.}\ \cite{Josh11} mine sequential patterns in
+semantic trajectories for location prediction. They define a sequential pattern
+as a sequence of semantic labels (\emph{e.g.}, school $\rightarrow$ park).
+Such a definition ignores spatial and temporal information. In contrast, our
+fine-grained patterns consider the spatial, temporal and semantic dimensions
+simultaneously.
+

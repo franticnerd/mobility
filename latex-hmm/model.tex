@@ -1,0 +1,256 @@
+%! TEX root = main-hmm.tex
+
+%-------------------------------------------------------------------------------
+% Extension to mixture model and multiple sequences.
+%-------------------------------------------------------------------------------
+\section{The Mixture Model}
+
+
+\subsection{Model Description.}
+
+In the mixture model, we have a HMM model parameterized by $\Theta_H$ and a
+background model parameterized by $\Theta_B$. The prior probability of choosing
+the HMM model is $\lambda ~(0 < \lambda < 1)$. Given a length-2 sequence $\X$,
+we associate it with a binary latent variable $\h$, $\h=1$ indicates $\X$ is
+generated from HMM, and $\h=0$ means $\X$ is generated from the background
+model.  We have multiple sequences $\X^1, \X^2, \ldots, \X^R$.
+
+
+\subsection{Parameter Inference.}
+We can again use the EM algorithm to infer the parameters.
+
+%-------------------------------------------------------------------------------
+% The E-Step.
+%-------------------------------------------------------------------------------
+\subsubsection{E-Step.}
+
+In the E-step, the latent variables $\h^r, \z^r, \g^r$ are computed, assuming
+we are given a set of old parameters $\Theta^0$. For each sequence $\X^r$, we define the following
+quatities.
+
+\pa{1ex}{Latent variable $\h^r$.}
+The probability distribution of the underlying model (HMM or Background) for the $r$-th data point $\X^r$:
+$$
+\kappa(\h^r) = p(\h^r | \X^r, \Theta^0).
+$$
+$\kappa(\h_{1}^r)$ is the probability that $\X^r$ is generated from HMM.
+The quantity can be computed as follows:
+$$
+p(\h^r=1 | \X^r, \Theta^0) = \frac{\lambda^0 p(\X^r | \Theta_H^0)}
+{\lambda^0 p(\X^r | \Theta_{H}^0) +  (1- \lambda^0) p(\X^r | \Theta_B^0)}
+$$
+
+
+\pa{1ex}{Latent variable $\z_n^r$.}
+The probability distribution of the latent state at position $n$ for $\X^r$:
+$$
+\gamma(\z_n^r) = p(\z_n^r | \X^r, \Theta^0).
+$$
+$\gamma(z_{nk}^r)$ is the probability that the latent state at
+position $n$ is $k$ for the $r$-th sequence.  The computation of
+$\gamma(\z_{n}^r)$ can be achieved using the forward-backward algorithm.
+$$
+\gamma(\z_n^r) = \frac{\alpha(\z_n^r) \beta(\z_n^r)}{p(\X^r)},
+$$
+where 
+\begin{align*}
+  \alpha(\z_n^r)  & =  p(\o_1^r, \o_2^r, \ldots, \o_n^r, \z_n^r) \\
+  \beta(\z_n^r)  & =  p(\o_{n+1}^r, \ldots, \o_n^r | \z_n^r)
+\end{align*}
+Both quantities can be evaluated iteratively, namely
+\begin{align*}
+\alpha(\z_n^r) = & p(\o_n^r | \z_n^r) \Sum_{\z_{n-1}^r} \alpha(\z_{n-1}^r) p(\z_n^r | \z_{n-1}^r) \\
+\beta(\z_n^r) = & \Sum_{\z_{n+1}^r} \beta(\z_{n+1}^r) p(\o_{n+1}^r | \z_{n+1}^r) p(\z_{n+1}^r | \z_{n}^r).
+\end{align*}
+
+The initial quantities are given as follows:
+$$
+\alpha(\z_1^r = k) = p(\o_1^r, \z_1^r=k) = \pi_k p(\o_1^r | \phi_k).
+$$
+and
+$
+\beta(\z_N^r) = 1
+$
+for all settings of $\z_N^r$.
+Moreover, we have $p(\X^r)$ computed as $p(\X^r) = \Sum_{\z_N^r} \alpha(\z_N^r)$.
+
+\pa{1ex}{Latent variable $\g_{nk}^r$.}
+The probability distribution of the Gaussian component for the latent
+variable at position $n$ and state $k$:
+$$
+\rho(\g_{nk}^r) = p(\g_{nk}^r | \X^r, \Theta^0).
+$$
+$\rho(g_{nkm}^r)$ is the probability
+that the latent state at position $n$ is $k$, and the Gaussian component is $m$.
+Once $\gamma(z_{nk}^r)$ is computed, the quantity $\rho(g_{nkm}^r)$ can be easily computed:
+$$
+\rho(g_{nkm}^r) = \gamma(z_{nk}^r) \frac{c_{km} b_{km}(\x_n^r)}{\Sum_{m=1}^M c_{km} b_{km}(\x_n^r)}.
+$$
+
+
+\pa{1ex}{Latent variable $\xi^r$.}
+The probability of transiting from a state at position $n-1$ to a
+state at position $n$:
+$$
+\xi(\z_{n-1}^r, \z_n^r) = p(\z_{n-1}^r, \z_n^r | \X^r, \Theta^0).
+$$
+$\xi(z_{n-1, j}^r, z_{nk}^r)$ is the
+probability that the latent state is $j$ at position $n-1$, and state $k$ at
+position $n$.  $ \xi$ can be computed as 
+\begin{align*}
+\xi(\z_{n-1}^r, \z_n^r) = 
+& \frac{\alpha(\z_{n-1}^r) p(\o_n^r | \z_n^r) p(\z_n^r | \z_{n-1}^r) \beta(\z_n^r)}
+{p(\X^r)} \\
+\end{align*}
+
+
+%-------------------------------------------------------------------------------
+% The M-Step.
+%-------------------------------------------------------------------------------
+\subsubsection{M-Step.}
+
+The Q-function is:
+\begin{align*}
+  &L(\Theta) \\
+  = & \Sum_{r=1}^R \Sum_{\h^r} \Sum_{\z^r} \Sum_{\g^r} p(\h^r, \z^r, \g^r| \X^r, \Theta^0)
+  \ln p(\X^r, \h^r, \z^r, \g^r| \Theta) \\
+  = & \Sum_{r=1}^R \Sum_{\h^r} \Sum_{\z^r} \Sum_{\g^r} p(\h^r, \z^r, \g^r| \X^r, \Theta^0)
+  \h^r \{ \ln [\lambda p(\X^r, \z^r, \g^r| \Theta_H)] \\
+   & + (1 - \h^r) \ln [ (1 - \lambda) p(\X^r, \z^r, \g^r| \Theta_B)] \} \\
+  = &  \Sum_{r=1}^R \Sum_{\z^r} \Sum_{\g^r} p(\h^r = 1, \z^r, \g^r| \X^r, \Theta^0) \ln \lambda \\
+  & + \Sum_{r=1}^R \Sum_{\z^r} \Sum_{\g^r} p(\h^r = 1, \z^r, \g^r| \X^r, \Theta^0) \ln p(\X^r, \z^r, \g^r|  \Theta_H) \\
+    & + \Sum_{r=1}^R \Sum_{\z^r} \Sum_{\g^r} p(\h^r = 0, \z^r, \g^r| \X^r, \Theta^0) \ln (1 - \lambda)\\
+    & + \Sum_{r=1}^R \Sum_{\z^r} \Sum_{\g^r} p(\h^r = 0, \z^r, \g^r| \X^r, \Theta^0) \ln p(\X^r|  \Theta_B) \\
+    = & \Sum_{r=1}^R \kappa(\h^r_1)  \ln \lambda + \Sum_{r=1}^R \kappa(\h^r_0) \ln (1 - \lambda) \\
+    &  + \Sum_{r=1}^R \Sum_{\z^r} \Sum_{\g^r} p(\h^r = 1, \z^r, \g^r| \X^r, \Theta^0) \ln p(\X^r, \z^r, \g^r| \Theta_H) \\
+   & + \Sum_{r=1}^R \kappa (\h^r_0) \ln p(\X^r| \Theta_B)
+\end{align*}
+
+Note that $ p(\X^r, \z^r, \g^r|  \Theta_B) = p(\X^r| \Theta_B)$
+because for the background model, there is no latente variables. For the last
+term in the above equation, we can actually ignore it because $\Theta_B$ is
+already known and there are no variables for estimation.
+
+\pa{2ex}{Estimating $\lambda$:}
+Using the first line in the Q-function, we can get the estimation of $\lambda$ as:
+$$
+\lambda = \frac{\Sum_{r=1}^R \kappa(\h^r_1) }{R}.
+$$
+
+
+\pa{2ex}{Estimating $\pi, \A, \theta, c, \mu, \Sigma$:}
+We proceed to discuss the estimations of the other parameters in the second line of the Q-function.
+To begin with, note that $z_{nk}$ is a binary variable (1 indicates the latent state at $n$ is $k$, and 0 indicates
+the latent sate is not $k$), and the same holds for $\z_{n-1} \cdot \z_{n}$. Hence,  we have
+\begin{align*}
+\Sum_{\z^r} p(\z^r | \X^r, \Theta^0) \cdot z_{nk}^r = p(z_{nk}^r = 1 | \X^r, \Theta^0) = \gamma(z_{nk}^r), \\
+\Sum_{\z^r} p(\z^r | \X^r, \Theta^0) \cdot z_{n-1, j}^r \cdot z_{nk}^r = \xi(z_{n-1, j}^r, z_{nk}^r).
+\end{align*}
+
+Consider the second line in the Q-function, we have
+\begin{align*}
+  & f(\Theta_H) \\
+= & \Sum_{r=1}^R p(\h^r = 1| \X^r, \Theta^0) \\
+&  \cdot \Sum_{\z^r} \Sum_{\g^r} p( \z^r, \g^r| \X^r, \h^r = 1,\Theta^0) \ln p(\X^r, \z^r, \g^r| \Theta_H)  \\
+  = & \Sum_{r=1}^R \kappa(\h^r_1) \Sum_{\z^r} p(\z^r | \X^r, \Theta^0) \ln p(\z^r_1 | \pi) \\
+& + \Sum_{r=1}^R \kappa(\h^r_1) \Sum_{\z^r} p(\z^r | \X^r, \Theta^0) \Sum_{n=2}^N \ln p(\z^r_n | \z^r_{n-1}, \A) \\
+& + \Sum_{r=1}^R \kappa(\h^r_1) \Sum_{\z^r} \Sum_{\g^r} p(\z^r, \g^r| \X^r, \Theta^0) \Sum_{n=1}^N \Sum_{k=1}^K z^r_{nk} \ln p(\x_n, \g_n^r | \phi_k) \\
+& +\Sum_{r=1}^R \kappa(\h^r_1)  \Sum_{\z^r} \Sum_{\g^r} p(\z^r, \g^r| \X^r, \Theta^0) \Sum_{n=1}^N \Sum_{k=1}^K z^r_{nk} \ln p(\y_n | \phi_k) \\
+\end{align*}
+
+Note that, the first two terms are derived because the latent variable $\g^r$
+is marginalized. Similarly, for the fourth term, since the quantity is
+irrelevant to the latent variable $\g^r$, marginalization of $p(\z^r, \g^r| \X^r,
+\Theta^0)$ over $\g^r$ can be done.  Those four terms can be optimized
+separately. 
+
+
+\pa{2ex}{Optimizing $\pi, \A$:}
+Consider the first term, since the latent variable $\z_1^r$ can take a value from
+$\{1, 2, \ldots, K\}$, we have 
+$$
+p(\z_1^r | \pi) = \Prod_{k=1}^K \pi_k^{z_{1k}^r}.
+$$
+Hence, the first term in the above equation becomes 
+\begin{align*}
+f = & \Sum_{r=1}^R \kappa(\h^r_1) \Sum_{\z^r} p(\z^r | \X^r, \Theta^0) \Sum_{k=1}^K z_{1k}^r \ln \pi_k \\
+= & \Sum_{r=1}^R \kappa(\h^r_1) \Sum_{k=1}^K \gamma(z_{1k}^r) \ln \pi_k.
+\end{align*}
+Using the Lagrange multiplier, we obtain the following optimal parameters:
+$$
+\pi_k = \frac{\Sum_{r=1}^R \kappa(\h^r_1)  \gamma(z_{1k}^r)} 
+{\Sum_{r=1}^R  \Sum_{j=1}^K \kappa(\h^r_1) \gamma(z_{1j}^r)} 
+ = \frac{\Sum_{r=1}^R \kappa(\h^r_1)  \gamma(z_{1k}^r)} 
+{\Sum_{r=1}^R   \kappa(\h^r_1) } 
+$$
+
+
+For the second term, we have
+\begin{align*}
+  f = & \Sum_{r=1}^R \kappa(\h^r_1) \Sum_{\z^r} p(\z^r | \X^r, \Theta^0) \Sum_{n=2}^N \Sum_{j=1}^K \Sum_{k=1}^K z_{n-1, j}^r z_{nk}^r \ln A_{jk} \\
+  = & \Sum_{r=1}^R \kappa(\h^r_1) \Sum_{n=2}^N \Sum_{k=1}^K \Sum_{j=1}^K \xi(z_{n-1, j}^r, z_{nk}^r) \ln A_{jk} \\
+\end{align*}
+Similarly, we can use the Lagrange multiplier to obtain the optimal parameter as
+$$
+A_{jk} = \frac{ \Sum_{r=1}^R  \Sum_{n=2}^N \kappa(\h^r_1) \xi(z_{n-1, j}^r, z_{nk}^r )}
+{ \Sum_{r=1}^R \Sum_{n=2}^N \Sum_{i=1}^K \kappa(\h^r_1) \xi(z_{n-1, j}^r, z_{ni}^r )}
+$$
+
+
+\pa{2ex}{Optimizing $\theta$:}
+
+Now we consider the fourth term:
+$$
+f = \Sum_{r=1}^R \kappa(\h^r_1) \Sum_{n=1}^N \Sum_{k=1}^K \gamma(z_{nk}^r) \ln p(\y_n^r | \phi_k)
+$$
+Recall that, we model the generation of the words
+as the observations from multinomial distribution. For state 
+$k$, we have
+$$
+p(\y_n^r | \phi_k) = \Prod_{v=1}^V \theta_{kv}^{y_{nv}^r}
+$$
+then the objective function becomes
+$$
+f = \Sum_{r=1}^R \Sum_{n=1}^N \Sum_{k=1}^K \Sum_{v=1}^V
+\kappa(\h^r_1)\gamma(z_{nk}^r) y_{nv}^r \ln \theta_{kv}
+$$
+Again, using the Lagrange multiplier, we obtain the parameter estimation as
+$$
+\theta_{kv} = \frac{\Sum_{r=1}^R  \Sum_{n=1}^N \kappa(\h^r_1) y_{nv}^r \gamma(z_{nk}^r)}
+{\Sum_{r=1}^R  \Sum_{n=1}^N \kappa(\h^r_1) \gamma(z_{nk}^r)}.
+$$
+
+
+
+\pa{2ex}{Optimizing $c, \mu, \Sigma$:}
+
+We proceed to consider the geographical part. Recall that we assume the
+geographical location $\x_n^r$ is generated from a Gaussian mixture $\phi_k$
+that have $M$ components, namely
+
+$$
+p(\x_n^r, \g_n^r | \phi_k) = \Sum_{m=1}^M g_{nm}^r c_{km} b_{km}(\x_n^r)
+$$
+the objective function is now
+$$
+f = \Sum_{r=1}^R \Sum_{n=1}^N \Sum_{k=1}^K \Sum_{m=1}^M 
+\kappa(\h^r_1) \rho(g_{nkm}^r) \ln(c_{km} b_{km}(\x_n^r))
+$$
+
+The optimal parameters are computed as
+$$
+c_{km} =  \frac{\Sum_{r=1}^R  \Sum_{n=1}^N \kappa(\h^r_1) \rho(g_{nkm}^r)}
+  {\Sum_{r=1}^R  \Sum_{n=1}^N \kappa(\h^r_1) \gamma(z_{nk}^r)}
+$$
+
+$$
+  \mu_{km} = \frac{\Sum_{r=1}^R  \Sum_{n=1}^N \kappa(\h^r_1) \rho(g_{nkm}^r) \x_n^r}
+  {\Sum_{r=1}^R  \Sum_{n=1}^N \kappa(\h^r_1) \rho(g_{nkm}^r)}
+$$
+
+$$
+  \Sigma_{km} =
+  \frac{\Sum_{r=1}^R \Sum_{n=1}^N \kappa(\h^r_1) \rho(g_{nkm}^r) (\x_n^r - \mu_{km}) (\x_n^r - \mu_{km})^T }
+  {\Sum_{r=1}^R  \Sum_{n=1}^N \kappa(\h^r_1) \rho(g_{nkm}^r)}
+$$
+

@@ -1,0 +1,51 @@
+%! TEX root = main-hmm.tex
+
+\section{Experiments}
+\label{sect:exp}
+
+In this section, we evaluate the empirical performance of the proposed method. All
+the algorithms were implemented in JAVA and the experiments were conducted on a
+computer with Intel Core i7 2.4Ghz CPU and 8GB memory.
+
+
+\subsection{Experimental Setup}
+\label{sect:setup}
+
+
+\pa{0ex}{Data Sets.} The real data set, referred to as Tweet, is collected from
+Twitter.  This data set consists of the geo-tagged tweets of 14,909 users
+living in New York.  There are totally 68,564 distinct places in the data set,
+distributed in a $0.5^{\circ} \times 0.5^{\circ}$ space. The average length of
+each trajectory, \emph{i.e.}, number of check-ins, is 82.
+
+
+
+\subsection{Experimental Results}
+\label{sect:results}
+
+
+
+\begin{table*}[t]
+\centering
+\caption{The word distribution of of the latent states.}
+\label{tab:result}
+\begin{small}
+\begin{tabular}{|c|c|c|c|c|c|}
+\hline
+\multicolumn{2}{|c|}{\textbf{State 0}} & \multicolumn{2}{|c|}{\textbf{State 5}} & \multicolumn{2}{|c|}{\textbf{State 8}} \\ \hline\hline
+shop & 0.1242106& travel & 0.15717 & hotel & 0.0991\\\hline
+service & 0.080308& airport & 0.1264 & residence & 0.0577\\\hline
+apparel & 0.0782& jfk & 0.1052 & hotel & 0.03227\\\hline
+women & 0.0632 & terminal & 0.0674 & building & 0.031497\\\hline
+store & 0.051126& international & 0.0545 & inn & 0.02978\\\hline
+food & 0.03212 & kennedy & 0.05408 & center & 0.02891\\\hline
+mall & 0.03123 & station & 0.0317 & plaza & 0.021429\\\hline
+shopping & 0.021112 & train & 0.0221 & home & 0.02101\\\hline
+\end{tabular}
+\end{small}
+\end{table*}
+
+
+
+
+

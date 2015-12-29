@@ -1,0 +1,80 @@
+%! TEX root = main-hmm.tex
+
+%-------------------------------------------------------------------------------
+% The background model.
+%-------------------------------------------------------------------------------
+\section{The Background Model.}
+\label{sect:background}
+
+\subsection{Model Description.}
+
+The background model is an extension of the Gaussian mixture model such that
+each component generates a Gaussian as well as a number of keywords from the
+vacabulory.  One may concern that a Gaussian may not well model the spatial
+shape for a latent topic. However, with a large enough number of components,
+the spatial distribution of a non-Gaussian topic is simply split into several
+states.
+
+We consider the input $\O = \{\o_1, \o_2, \ldots, \o_N\}$, which are $N$ places
+and each place $\o_n$ is described by a location $\x_n$ and a word vector
+$\y_n$.  We use $\pi$ to represent the prior distributions over the latent
+components.  In addition, we assume each component generates the textual
+observations from a multinomial parameterized by $\theta_{kv} (1 \le k \le K, 1
+\le v \le V)$ such that $\theta_{kv}$ is the probability of generating word $v$
+from component $k$; the geographical observation is from a Gaussian,
+parameterized by $\mu_k$ and $\Sigma_k$.
+
+\subsection{Parameter Inference.}
+
+We use EM to obtain the parameters for the background model.
+For each observation $\o_n$, we use $\z_n$ to represent its membership over the $K$ latent
+components. Note that $\z_n$ has the 1-of-K representation. Namely, if the latent component
+is $k$, then $z_{nk} = 1$ and all the other positions in the vector $\z_n$ are 0. 
+
+\subsubsection{E-Step.}
+For ease of representation, we define
+$$
+\gamma(z_{nk}) = p(z_{nk} = 1 | \o_n, \Theta^0).
+$$
+
+This can be easily computed using the Bayes rule, namely
+$$
+\gamma(z_{nk}) 
+= \frac{ \pi_k p(\o_n | \phi_k) }
+{\Sum_{k=1}^K \pi_k p(\o_n | \phi_k) }
+= \frac{ \pi_k p(\x_n, \y_n | \phi_k) }
+{\Sum_{k=1}^K \pi_k p(\x_n, \y_n | \phi_k) }
+$$
+
+\subsubsection{M-Step.}
+We have
+$$
+\ln p(\o_n, \z_n) = \Sum_{k=1}^K z_{nk} [\ln \pi_k + \ln p(\o_n | \phi_k) ].
+$$
+
+The Q-function is thus
+\begin{align*}
+Q = & \Sum_{n=1}^N \Sum_{\z_n} \ln p(\o_n, \z_n | \Theta) p(\z_n | \o_n, \Theta^0) \\
+ = & \Sum_{n=1}^N \Sum_{k=1}^K \gamma(z_{nk}) [\ln \pi_k + \ln p(\o_n | \phi_k) ]
+\end{align*}
+
+The parameters are estimated as follows:
+$$
+\pi_k = \frac{1}{N} \Sum_{n=1}^N \gamma(z_{nk})
+$$
+
+$$
+\theta_{kv} = \frac{\Sum_{n=1}^N \gamma(z_{nk}) y_{nv}}
+{\Sum_{n=1}^N \Sum_{v=1}^V \gamma(z_{nk}) y_{nv}}
+$$
+
+$$
+\mu_{k} = \frac{\Sum_{n=1}^N \gamma(z_{nk}) \x_n}
+{\Sum_{n=1}^N \gamma(z_{nk})}
+$$
+
+$$
+\Sigma_{k} = \frac{\Sum_{n=1}^N \gamma(z_{nk}) (\x_n - \mu_k) (\x_n - \mu_k)^T}
+{\Sum_{n=1}^N \gamma(z_{nk})}
+$$
+

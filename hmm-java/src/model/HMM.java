@@ -688,11 +688,13 @@ public class HMM implements Serializable {
             this.temporalModel[i] = new Gaussian(temporal.get(i));
     }
 
+    // don't need to return LL, since I noticed the LL is stored in "totalLL" and can be accessed any time
 	public void train(SequenceDataset data, int K, int M, double[] seqsFracCount) {
 		// TODO Auto-generated method stub
 		
 	}
 
+	// don't need to return LL, since I noticed the LL is stored in "totalLL" and can be accessed any time
 	public void update(SequenceDataset data, double[] seqsFracCount) {
 		// TODO Auto-generated method stub
 		

@@ -35,19 +35,15 @@ public class MixtureOfHMMs {
 
 	public void train(SequenceDataset data) {
 		seqsFracCounts = new double[C][data.size()];
-		initHMMsByUniformSplit(data);
+		initHMMs(data);
 		for (int iter = 0; iter < MaxIter; iter++) {
 			eStep(data);
 			mStep(data);
 		}
 	}
 
-	private void initHMMsByUniformSplit(SequenceDataset data) {
-		for (int i = 0; i < data.size(); i++) {
-			for (int c = 0; c < C; ++c) {
-				seqsFracCounts[c][i] = 1.0 / c;
-			}
-		}
+	private void initHMMs(SequenceDataset data) {
+		SplitDataByKMeans(data, true);
 		for (int c = 0; c < C; ++c) {
 			HMM hmm = new HMM(HMM_maxIter);
 			hmm.train(data, HMM_K, HMM_M, seqsFracCounts[c]);
@@ -55,7 +51,15 @@ public class MixtureOfHMMs {
 		}
 	}
 
-	private void initHMMsByRandomSplit(SequenceDataset data) {
+	private void SplitDataUniformly(SequenceDataset data) {
+		for (int i = 0; i < data.size(); i++) {
+			for (int c = 0; c < C; ++c) {
+				seqsFracCounts[c][i] = 1.0 / c;
+			}
+		}
+	}
+
+	private void SplitDataRandomly(SequenceDataset data) {
 		for (int i = 0; i < data.size(); i++) {
 			double[] seqFracCounts = new double[C];
 			for (int c = 0; c < C; ++c) {
@@ -66,14 +70,9 @@ public class MixtureOfHMMs {
 				seqsFracCounts[c][i] = seqFracCounts[c];
 			}
 		}
-		for (int c = 0; c < C; ++c) {
-			HMM hmm = new HMM(HMM_maxIter);
-			hmm.train(data, HMM_K, HMM_M, seqsFracCounts[c]);
-			hmms.add(hmm);
-		}
 	}
 
-	private void initHMMsByBackgroundKMeans(SequenceDataset data) {
+	private void SplitDataByKMeans(SequenceDataset data, boolean useTwiceLongFeatures) {
 		CheckinDataset bgd = new CheckinDataset();
 		bgd.load(data);
 		Background b = new Background(BG_maxIter);
@@ -81,16 +80,28 @@ public class MixtureOfHMMs {
 		List<RealVector> featureVecs = new ArrayList<RealVector>(data.size());
 		List<Double> weights = new ArrayList<Double>(data.size());
 		for (int i = 0; i < data.size(); i++) {
-			RealVector featureVec = new ArrayRealVector(BG_numState * 2);
-			for (int state = 0; state < BG_numState; ++state) {
-				for (int n = 0; n < 2; ++n) {
-					double membership = b.calcLL(data.getGeoDatum(2 * i + n), data.getTemporalDatum(2 * i + n),
-							data.getTextDatum(2 * i + n));
-					featureVec.setEntry(2 * state + n, membership);
+			if (useTwiceLongFeatures) { // use BG_numState*2 dimension feature vectors
+				RealVector featureVec = new ArrayRealVector(BG_numState * 2);
+				for (int state = 0; state < BG_numState; ++state) {
+					for (int n = 0; n < 2; ++n) {
+						double membership = b.calcLL(data.getGeoDatum(2 * i + n), data.getTemporalDatum(2 * i + n),
+								data.getTextDatum(2 * i + n));
+						featureVec.setEntry(2 * state + n, membership);
+					}
 				}
+				featureVecs.set(i, featureVec);
+				weights.set(i, 1.0);
+			} else { // use BG_numState dimension feature vectors
+				RealVector featureVec = new ArrayRealVector(BG_numState);
+				for (int state = 0; state < BG_numState; ++state) {
+					double membership = b.calcLL(data.getGeoDatum(2 * i), data.getTemporalDatum(2 * i),
+							data.getTextDatum(2 * i), data.getGeoDatum(2 * i + 1), data.getTemporalDatum(2 * i + 1),
+							data.getTextDatum(2 * i + 1));
+					featureVec.setEntry(state, membership);
+				}
+				featureVecs.set(i, featureVec);
+				weights.set(i, 1.0);
 			}
-			featureVecs.set(i, featureVec);
-			weights.set(i, 1.0);
 		}
 		KMeans kMeans = new KMeans(500);
 		List<Integer>[] kMeansResults = kMeans.cluster(featureVecs, weights, C);

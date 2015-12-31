@@ -4,11 +4,16 @@ import cluster.KMeans;
 import com.mongodb.BasicDBList;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBObject;
+
+import data.Checkin;
+import data.Sequence;
 import data.SequenceDataset;
 import data.WordDataset;
 import distribution.Gaussian;
 import distribution.Multinomial;
 import myutils.ArrayUtils;
+
+import org.apache.commons.math3.linear.ArrayRealVector;
 import org.apache.commons.math3.linear.RealMatrix;
 import org.apache.commons.math3.linear.RealVector;
 
@@ -586,7 +591,21 @@ public class HMM implements Serializable {
             hmmLL += con[n] + scalingFactor[n];
         return hmmLL;
     }
-
+    
+    public double calcSeqScore(Sequence seq) {
+		Checkin startPlace = seq.getCheckin(0);
+		Checkin endPlace = seq.getCheckin(1);
+        List<RealVector> geo = new ArrayList<RealVector>();
+        List<RealVector> temporal = new ArrayList<RealVector>();
+        List<Map<Integer,Integer>> text = new ArrayList<Map<Integer, Integer>>();
+        geo.add(startPlace.getLocation().toRealVector());
+        temporal.add(new ArrayRealVector(new double[]{startPlace.getTimestamp() % 1440}));
+        text.add(startPlace.getMessage());
+        geo.add(endPlace.getLocation().toRealVector());
+        temporal.add(new ArrayRealVector(new double[]{endPlace.getTimestamp() % 1440}));
+        text.add(endPlace.getMessage());
+        return calcLL(geo, temporal, text);
+    }
 
     public DBObject toBson() {
         DBObject o = new BasicDBObject();
@@ -668,6 +687,16 @@ public class HMM implements Serializable {
         for(int i=0; i<temporal.size(); i++)
             this.temporalModel[i] = new Gaussian(temporal.get(i));
     }
+
+	public void train(SequenceDataset data, int K, int M, double[] seqsFracCount) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	public void update(SequenceDataset data, double[] seqsFracCount) {
+		// TODO Auto-generated method stub
+		
+	}
 
 }
 

@@ -19,6 +19,7 @@ import org.apache.commons.math3.linear.RealVector;
 
 import java.io.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -102,6 +103,8 @@ public class HMM implements Serializable {
             this.weight = new double[R];
             for (int i = 0; i < R; i++)
                 this.weight[i] = 1.0;
+        } else {
+            this.weight = Arrays.copyOf(weight, weight.length);
         }
         weightSum = ArrayUtils.sum(this.weight);
     }

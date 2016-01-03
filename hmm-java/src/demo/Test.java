@@ -1,6 +1,10 @@
 package demo;
 
 import java.util.*;
+
+import org.apache.commons.math3.linear.ArrayRealVector;
+import org.apache.commons.math3.linear.RealVector;
+
 import java.io.*;
 
 import data.Checkin;
@@ -15,9 +19,15 @@ public class Test {
 	static public final String WorkPath = "/Users/keyangzhang/Documents/UIUC/Research/Mobility/mobility/";
 
 	public static void main(String[] args) throws Exception {
+		RealVector v = new ArrayRealVector(2);
+		v.setEntry(1, 2);
+		System.out.println(v);
+	}
+	
+	public static void main1(String[] args) throws Exception {
 		System.setOut(new PrintStream(new FileOutputStream(WorkPath + "results/result.txt")));
-//		 String datasetName = "ny40k.yaml";
-		String datasetName = "4sq.yaml";
+		 String datasetName = "ny40k.yaml";
+//		String datasetName = "4sq.yaml";
 		String paraFile = args.length > 0 ? args[0] : WorkPath + "run/" + datasetName;
 
 		Map config = new Config().load(paraFile);

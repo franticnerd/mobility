@@ -1,6 +1,6 @@
 file:
   write: yes
-  dir: &DIR /Users/keyangzhang/Documents/UIUC/Research/Mobility/data/ny40k/
+  dir: &DIR /Users/keyangzhang/Documents/UIUC/Research/Mobility/data/ny40k_sub/
   raw:
     dir: &RAW_DIR !join [*DIR, raw/]
     checkins: !join [*RAW_DIR, checkins.txt]
@@ -16,7 +16,7 @@ mongo:
   write: no
   dns: dmserv4.cs.illinois.edu
   port: 11111
-  db: ny40k
+  db: ny40k_sub
   raw: raw
   sequences: hmm_seqs
   words: hmm_words

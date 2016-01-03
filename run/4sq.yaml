@@ -1,6 +1,6 @@
 file:
   write: yes
-  dir: &DIR /Users/chao/Dataset/hmm-mobility/4sq/
+  dir: &DIR /Users/keyangzhang/Documents/UIUC/Research/Mobility/data/4sq/
   raw:
     dir: &RAW_DIR !join [*DIR, raw/]
     checkins: !join [*RAW_DIR, checkins.txt]

@@ -43,15 +43,15 @@ public class Demo {
         wd.load(wordFile);
         hmmd.load(sequenceFile, testRatio);
         hmmd.setNumWords(wd.size());
-        bgd.load(hmmd);
+//        bgd.load(hmmd);
     }
 
     /** ---------------------------------- Train ---------------------------------- **/
     static void train() throws Exception {
       boolean isTrain = ((Boolean)((Map)config.get("model")).get("train"));
-      b = isTrain ? trainBackground() : mongo.loadBackground();
+//      b = isTrain ? trainBackground() : mongo.loadBackground();
       h = isTrain ? trainHMM() : mongo.loadHMM();
-      m = isTrain ? trainMixture() : mongo.loadMixture();
+//      m = isTrain ? trainMixture() : mongo.loadMixture();
     }
 
     static Background trainBackground() {
@@ -85,9 +85,9 @@ public class Demo {
 
     static void writeModels() throws Exception {
         if((Boolean)((Map)config.get("file")).get("write")) {
-            b.write(wd, (String) ((Map) ((Map) config.get("post")).get("keyword")).get("bgd_description"));
+//            b.write(wd, (String) ((Map) ((Map) config.get("post")).get("keyword")).get("bgd_description"));
             h.write(wd, (String)((Map)((Map)config.get("post")).get("keyword")).get("hmm_description"));
-            m.write(wd, (String) ((Map) ((Map) config.get("post")).get("keyword")).get("mix_description"));
+//            m.write(wd, (String) ((Map) ((Map) config.get("post")).get("keyword")).get("mix_description"));
         }
         if((Boolean)((Map)config.get("mongo")).get("write")) {
             mongo.writeModels(b, h, m);
@@ -107,14 +107,17 @@ public class Demo {
         HMMPredictor hp = new HMMPredictor(h);
         hp.predict(pd, K);
         hp.printAccuracy();
-        HMMPredictor mp = new HMMPredictor(m);
-        mp.predict(pd, K);
-        mp.printAccuracy();
+//        HMMPredictor mp = new HMMPredictor(m);
+//        mp.predict(pd, K);
+//        mp.printAccuracy();
     }
 
     /** ---------------------------------- Main ---------------------------------- **/
     public static void main(String [] args) throws Exception {
-        String paraFile = args.length > 0 ? args[0] : "../run/4sq.yaml";
+//        String paraFile = args.length > 0 ? args[0] : "../run/4sq.yaml";
+//    	String paraFile = args.length > 0 ? args[0] : Test.WorkPath+"run/4sq.yaml";
+//    	String paraFile = args.length > 0 ? args[0] : Test.WorkPath+"run/ny40k.yaml";
+    	String paraFile = args.length > 0 ? args[0] : Test.WorkPath+"run/ny40k_sub.yaml";
         init(paraFile);
         train();
         writeModels();

@@ -57,6 +57,7 @@ public class Mixture extends HMM {
         }
     }
 
+
     /**
      * Step 1: initialize.
      */
@@ -119,20 +120,20 @@ public class Mixture extends HMM {
     protected void updateLambda() {
         lambda = 0;
         for(int r=0; r<R; r++) {
-            lambda += kappa[r][1];
+            lambda += weight[r] * kappa[r][1];
         }
-        lambda /= R;
+        lambda /= weightSum;
     }
 
     protected void updatePi() {
         double denominator = 0;
         for (int r=0; r<R; r++) {
-            denominator += kappa[r][1];
+            denominator += weight[r] * kappa[r][1];
         }
         for(int k=0; k<K; k++) {
             double numerator = 0;
             for(int r=0; r<R; r++) {
-                numerator += kappa[r][1] * gamma[r][0][k];
+                numerator += weight[r] * kappa[r][1] * gamma[r][0][k];
             }
             pi[k] = numerator / denominator;
         }
@@ -143,11 +144,11 @@ public class Mixture extends HMM {
             double denominator = 0;
             for (int r=0; r<R; r++)
                 for (int k=0; k<K; k++)
-                    denominator += kappa[r][1] * xi[r][j][k];
+                    denominator += weight[r] * kappa[r][1] * xi[r][j][k];
             for (int k=0; k<K; k++) {
                 double numerator = 0;
                 for (int r=0; r<R; r++) {
-                    numerator += kappa[r][1] * xi[r][j][k];
+                    numerator += weight[r] * kappa[r][1] * xi[r][j][k];
                 }
                 A[j][k] = numerator / denominator;
             }
@@ -171,7 +172,7 @@ public class Mixture extends HMM {
                 List<Double> weights = new ArrayList<Double>();
                 for (int r=0; r<R; r++)
                     for (int n=0; n<2; n++)
-                        weights.add(kappa[r][1]*rho[r][n][k][m]);
+                        weights.add(weight[r] * kappa[r][1]*rho[r][n][k][m]);
                 geoModel[k][m].fit(data.getGeoData(), weights);
             }
         }
@@ -183,7 +184,7 @@ public class Mixture extends HMM {
             List<Double> weights = new ArrayList<Double>();
             for (int r=0; r<R; r++)
                 for (int n=0; n<2; n++)
-                    weights.add(kappa[r][1]*gamma[r][n][k]);
+                    weights.add(weight[r] * kappa[r][1]*gamma[r][n][k]);
             temporalModel[k].fit(data.getTemporalData(), weights);
         }
     }
@@ -193,12 +194,12 @@ public class Mixture extends HMM {
             double denominator = 0;
             for (int r = 0; r < R; r++)
                 for (int n = 0; n < 2; n++)
-                    denominator += kappa[r][1] * gamma[r][n][k];
+                    denominator += weight[r] * kappa[r][1] * gamma[r][n][k];
             for (int m = 0; m < M; m++) {
                 double numerator = 0;
                 for (int r = 0; r < R; r++)
                     for (int n = 0; n < 2; n++)
-                        numerator += kappa[r][1] * rho[r][n][k][m];
+                        numerator += weight[r] * kappa[r][1] * rho[r][n][k][m];
                 c[k][m] = numerator / denominator;
             }
         }
@@ -218,7 +219,7 @@ public class Mixture extends HMM {
             double backgroundLL = backgroundModel.calcLL(data.getGeoDatum(2 * r), data.getTemporalDatum(2*r), data.getTextDatum(2 * r),
                     data.getGeoDatum(2 * r + 1), data.getTemporalDatum(2 * r + 1), data.getTextDatum(2 * r + 1));
             double mixtureProb = lambda * exp(hmmLL) + (1 - lambda) * exp(backgroundLL);
-            totalLL += log(mixtureProb);
+            totalLL += weight[r] * log(mixtureProb);
         }
     }
 

@@ -110,6 +110,15 @@ public class ArrayUtils {
         normalize(data);
     }
 
+
+    // sum of a list
+    public static double sum(List<Double> data) {
+        double ret = 0;
+        for (Double d : data)
+            ret += d;
+        return ret;
+    }
+
     // calc accuracy
     public static double calcAccuracy(List<Integer> groundTruth, List<Integer> predicted) {
         if (groundTruth.size() != predicted.size()) {

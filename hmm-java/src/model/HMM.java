@@ -19,6 +19,7 @@ import org.apache.commons.math3.linear.RealVector;
 
 import java.io.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -43,6 +44,9 @@ public class HMM implements Serializable {
     int K; // The number of latent states.
     int M; // The number of Gaussian components in each state.
     int V; // The number of words.
+    // weight of the sequences.
+    double[] weight;
+    double weightSum;
     // The latent variables
     double[][][] alpha; // alpha[r][n][k] is for the n-th position of sequence r at state k.
     double[][][] beta; // beta[r][n][k] is for the n-th position of sequence r at state k.
@@ -68,33 +72,41 @@ public class HMM implements Serializable {
 
     public void train(SequenceDataset data, int K, int M) {
         init(data, K, M);
-        double prevLL = totalLL;
-        for (int iter = 0; iter < maxIter; iter++) {
-            eStep(data);
-            mStep(data);
-            calcTotalLL();
-            System.out.println("HMM finished iteration " + iter + ". Log-likelihood:" + totalLL);
-            if(Math.abs(totalLL - prevLL) <= 0.01)
-                break;
-            prevLL = totalLL;
-        }
+        iterate(data);
     }
 
     /**
      * Step 1: initialize the geo and text models.
      */
+
     protected void init(SequenceDataset data, int K, int M) {
-        initFixedParameters(data, K, M);
+        init(data, K, M, null);
+    }
+
+    protected void init(SequenceDataset data, int K, int M, double [] weight) {
+        initFixedParameters(data, K, M, weight);
         initEStepParameters();
         initMStepParameters(data);
     }
 
 
-    protected void initFixedParameters(SequenceDataset data, int K, int M) {
+    protected void initFixedParameters(SequenceDataset data, int K, int M, double[] weight) {
         this.R = data.size();
         this.K = K;
         this.M = M;
         this.V = data.numWords();
+        setWeight(weight);
+    }
+
+    private void setWeight(double [] weight) {
+        if (weight == null) {
+            this.weight = new double[R];
+            for (int i = 0; i < R; i++)
+                this.weight[i] = 1.0;
+        } else {
+            this.weight = Arrays.copyOf(weight, weight.length);
+        }
+        weightSum = ArrayUtils.sum(this.weight);
     }
 
     protected void initEStepParameters() {
@@ -122,7 +134,7 @@ public class HMM implements Serializable {
     protected List<Integer>[] runKMeans(SequenceDataset data) {
         List<Double> weights = new ArrayList<Double>();
         for (int i = 0; i < data.getGeoData().size(); i++)
-            weights.add(1.0);
+            weights.add(weight[i / 2]);
         KMeans kMeans = new KMeans(500);
         return kMeans.cluster(data.getGeoData(), data.getTemporalData(), weights, K);
     }
@@ -130,8 +142,14 @@ public class HMM implements Serializable {
     // numDataPoints is 2R.
     protected void initPi(List<Integer>[] kMeansResults) {
         pi = new double[K];
-        for (int i = 0; i < K; i++)
-            pi[i] = (double) kMeansResults[i].size() / (double) (2 * R);
+        for (int i = 0; i < K; i++) {
+            List<Integer> members = kMeansResults[i];
+            double numerator = 0;
+            for (Integer m : members) {
+                numerator += weight[m / 2];
+            }
+            pi[i] =  numerator / (2 * weightSum);
+        }
     }
 
     protected void initA(List<Integer>[] kMeansResults) {
@@ -140,12 +158,12 @@ public class HMM implements Serializable {
         for (int r = 0; r < R; r++) {
             int fromClusterId = dataMembership[2 * r];
             int toClusterId = dataMembership[2 * r + 1];
-            A[fromClusterId][toClusterId] += 1;
+            A[fromClusterId][toClusterId] += weight[r];
         }
         for (int i = 0; i < K; i++) {
-            double rowSum = 0;
-            for (int j = 0; j < K; j++) {
-                rowSum += A[i][j];
+            double rowSum = ArrayUtils.sum(A[i]);
+            if (rowSum == 0) {
+                System.out.println("Transition matrix row is all zeros." + i);
             }
             for (int j = 0; j < K; j++) {
                 A[i][j] /= rowSum;
@@ -172,7 +190,7 @@ public class HMM implements Serializable {
             List<Double> clusterWeights = new ArrayList<Double>();
             for (int dataId : dataIds) {
                 clusterData.add(data.getTextData().get(dataId));
-                clusterWeights.add(1.0);
+                clusterWeights.add(weight[dataId / 2]);
             }
             textModel[i] = new Multinomial();
             textModel[i].fit(V, clusterData, clusterWeights);
@@ -189,7 +207,7 @@ public class HMM implements Serializable {
             List<Integer> dataIds = kMeansResults[k];
             for (int dataId : dataIds) {
                 clusterData.add(data.getGeoDatum(dataId));
-                clusterWeights.add(1.0);
+                clusterWeights.add(weight[dataId / 2]);
             }
             KMeans kMeans = new KMeans(500);
             List<Integer>[] subKMeansResults = kMeans.cluster(clusterData, clusterWeights, M);
@@ -199,11 +217,11 @@ public class HMM implements Serializable {
                 List<Double> subClusterWeights = new ArrayList<Double>();
                 for (int dataId : subDataIds) {
                     subClusterData.add(clusterData.get(dataId));
-                    subClusterWeights.add(1.0);
+                    subClusterWeights.add(clusterWeights.get(dataId));
                 }
                 geoModel[k][m] = new Gaussian();
                 geoModel[k][m].fit(subClusterData, subClusterWeights);
-                c[k][m] = (double) subClusterData.size() / (double) clusterData.size();
+                c[k][m] = ArrayUtils.sum(subClusterWeights) / ArrayUtils.sum(clusterWeights);
             }
         }
     }
@@ -217,7 +235,7 @@ public class HMM implements Serializable {
             List<Integer> dataIds = kMeansResults[k];
             for (int dataId : dataIds) {
                 clusterData.add(data.getTemporalDatum(dataId));
-                clusterWeights.add(1.0);
+                clusterWeights.add(weight[dataId / 2]);
             }
             temporalModel[k] = new Gaussian();
             temporalModel[k].fit(clusterData, clusterWeights);
@@ -225,7 +243,23 @@ public class HMM implements Serializable {
     }
 
     /**
-     * Step 2: learning the parameters using EM: E-Step.
+     * Step 2: iterate over the e-step and m-step.
+     */
+    protected void iterate(SequenceDataset data) {
+        double prevLL = totalLL;
+        for (int iter = 0; iter < maxIter; iter++) {
+            eStep(data);
+            mStep(data);
+            calcTotalLL();
+            System.out.println("HMM finished iteration " + iter + ". Log-likelihood:" + totalLL);
+            if(Math.abs(totalLL - prevLL) <= 0.01)
+                break;
+            prevLL = totalLL;
+        }
+    }
+
+    /**
+     * Step 2.1: learning the parameters using EM: E-Step.
      */
     protected void eStep(SequenceDataset data) {
         calcLL(data);
@@ -341,7 +375,7 @@ public class HMM implements Serializable {
     }
 
     /**
-     * Step 3: learning the parameters using EM: M-Step.
+     * Step 2.2: learning the parameters using EM: M-Step.
      */
     protected void mStep(SequenceDataset data) {
         updatePi();
@@ -356,9 +390,9 @@ public class HMM implements Serializable {
         for (int k = 0; k < K; k++) {
             double numerator = 0;
             for (int r = 0; r < R; r++) {
-                numerator += gamma[r][0][k];
+                numerator += gamma[r][0][k] * weight[r];
             }
-            pi[k] = numerator / R;
+            pi[k] = numerator / weightSum;
         }
     }
 
@@ -367,11 +401,11 @@ public class HMM implements Serializable {
             double denominator = 0;
             for (int r = 0; r < R; r++)
                 for (int k = 0; k < K; k++)
-                    denominator += xi[r][j][k];
+                    denominator += weight[r] * xi[r][j][k];
             for (int k = 0; k < K; k++) {
                 double numerator = 0;
                 for (int r = 0; r < R; r++) {
-                    numerator += xi[r][j][k];
+                    numerator += weight[r] * xi[r][j][k];
                 }
                 A[j][k] = numerator / denominator;
             }
@@ -383,7 +417,7 @@ public class HMM implements Serializable {
             List<Double> textWeights = new ArrayList<Double>();
             for (int r = 0; r < R; r++)
                 for (int n = 0; n < 2; n++)
-                    textWeights.add(gamma[r][n][k]);
+                    textWeights.add(weight[r] * gamma[r][n][k]);
             textModel[k].fit(V, data.getTextData(), textWeights);
         }
     }
@@ -395,7 +429,7 @@ public class HMM implements Serializable {
                 List<Double> weights = new ArrayList<Double>();
                 for (int r = 0; r < R; r++)
                     for (int n = 0; n < 2; n++)
-                        weights.add(rho[r][n][k][m]);
+                        weights.add(weight[r] * rho[r][n][k][m]);
                 geoModel[k][m].fit(data.getGeoData(), weights);
             }
         }
@@ -407,12 +441,12 @@ public class HMM implements Serializable {
             double denominator = 0;
             for (int r = 0; r < R; r++)
                 for (int n = 0; n < 2; n++)
-                    denominator += gamma[r][n][k];
+                    denominator += weight[r] * gamma[r][n][k];
             for (int m = 0; m < M; m++) {
                 double numerator = 0;
                 for (int r = 0; r < R; r++)
                     for (int n = 0; n < 2; n++)
-                        numerator += rho[r][n][k][m];
+                        numerator += weight[r] * rho[r][n][k][m];
                 c[k][m] = numerator / denominator;
             }
         }
@@ -424,7 +458,7 @@ public class HMM implements Serializable {
             List<Double> weights = new ArrayList<Double>();
             for (int r = 0; r < R; r++)
                 for (int n = 0; n < 2; n++)
-                    weights.add(gamma[r][n][k]);
+                    weights.add(weight[r] * gamma[r][n][k]);
             temporalModel[k].fit(data.getTemporalData(), weights);
         }
     }
@@ -468,7 +502,7 @@ public class HMM implements Serializable {
             double hmmLL = 0;
             for (int n = 0; n < 2; n++)
                 hmmLL += con[r][n] + scalingFactor[r][n];
-            totalLL += hmmLL;
+            totalLL += weight[r] * hmmLL;
         }
     }
 
@@ -688,17 +722,24 @@ public class HMM implements Serializable {
             this.temporalModel[i] = new Gaussian(temporal.get(i));
     }
 
+    /**
+    * Methods for the ensemble of HMM.
+    * */
     // don't need to return LL, since I noticed the LL is stored in "totalLL" and can be accessed any time
 	public void train(SequenceDataset data, int K, int M, double[] seqsFracCount) {
-		// TODO Auto-generated method stub
-		
+        init(data, K, M, seqsFracCount);
+        iterate(data);
 	}
 
 	// don't need to return LL, since I noticed the LL is stored in "totalLL" and can be accessed any time
 	public void update(SequenceDataset data, double[] seqsFracCount) {
-		// TODO Auto-generated method stub
-		
+        setWeight(seqsFracCount);
+        iterate(data);
 	}
+
+    public double getTotalLL()  {
+        return totalLL;
+    }
 
 }
 

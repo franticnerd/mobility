@@ -6,6 +6,7 @@ import java.util.*;
 public class Categorical {
 	ArrayList<Object> objects = new ArrayList<Object>();
 	ArrayList<Double> cdf = new ArrayList<Double>(); // cdf stands for Cumulative Distribution Function
+	Random random = new Random(1);
 
 	public Categorical(HashMap object2score) {
 		ArrayList<Double> scores = new ArrayList<Double>();
@@ -19,7 +20,7 @@ public class Categorical {
 	}
 
 	public Object sample() {
-		double randDouble = new Random().nextDouble();
+		double randDouble = random.nextDouble();
 		int start = 0, end = cdf.size() - 1;
 		while (start != end) {
 			int mid = (start + end) / 2;

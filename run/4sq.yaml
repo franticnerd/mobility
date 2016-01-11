@@ -1,6 +1,7 @@
 file:
   write: yes
-  dir: &DIR /Users/chao/Dataset/hmm-mobility/4sq/
+  # dir: &DIR /Users/keyangzhang/Documents/UIUC/Research/Mobility/data/4sq/
+  dir: &DIR /Users/chao/Dataset/hmm-mobility/ny40k/
   raw:
     dir: &RAW_DIR !join [*DIR, raw/]
     checkins: !join [*RAW_DIR, checkins.txt]
@@ -31,6 +32,16 @@ preprocess:
   maxGap: 240
 
 
+# added by Keyang
+augment:
+  LngGridNum: 10
+  LatGridNum: 10
+  SimilarityThresh: 0.1
+  augmentTrain: no
+  augmentTest: no
+  augmentedSize: 10
+
+
 model:
   train: yes
   maxIter: 200
@@ -39,12 +50,21 @@ model:
   hmm:
     numState: 100
     numComponent: 1
+  # added by Keyang
+  ehmm:
+    numCluster: 5
+    initMethod: random # possible values: random, uniform, kmeans_k, kmeans_2k
+
 
 predict:
   testRatio: 0.2
   distThre: 3.0
   timeThre: 240.0
   K: 3
+  # added by Keyang
+  avgTest: no
+  filterTest: no # if set to yes, test set will only retain the seqs of the user with at least 1 training seqs
+
 
 post:
   keyword:

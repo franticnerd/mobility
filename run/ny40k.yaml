@@ -33,7 +33,7 @@ preprocess:
 
 model:
   train: yes
-  maxIter: 500
+  maxIter: 200
   background:
     numState: 100
   hmm:

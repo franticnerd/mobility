@@ -22,6 +22,8 @@ public class MixtureOfHMMs {
 	int C; // The number of clusters (every cluster is corresponding to a hmm).
 	ArrayList<HMM> hmms = new ArrayList<HMM>(C);
 	double[][] seqsFracCounts;
+	double totalLL = 0;
+	SequenceDataset data;
 
 	public MixtureOfHMMs(int MaxIter, int BG_numState, int BG_maxIter, int HMM_maxIter, int HMM_K, int HMM_M, int C) {
 		this.MaxIter = MaxIter;
@@ -34,16 +36,31 @@ public class MixtureOfHMMs {
 	}
 
 	public void train(SequenceDataset data) {
+		this.data = data;
 		seqsFracCounts = new double[C][data.size()];
-		initHMMs(data);
+		initHMMs();
+		double prevLL = totalLL;
 		for (int iter = 0; iter < MaxIter; iter++) {
-			eStep(data);
-			mStep(data);
+			eStep();
+			mStep();
+			calcTotalLL();
+			System.out.println("MixtureOfHMMs finished iteration " + iter + ". Log-likelihood:" + totalLL);
+			if (Math.abs(totalLL - prevLL) <= 0.01)
+				break;
+			prevLL = totalLL;
 		}
 	}
 
-	private void initHMMs(SequenceDataset data) {
-		SplitDataByKMeans(data, true);
+	private void calcTotalLL() {
+		totalLL = 0;
+		for (HMM hmm : hmms) {
+			totalLL += hmm.getTotalLL();
+		}
+	}
+
+	private void initHMMs() {
+		//				SplitDataByKMeans(data, false);
+		SplitDataRandomly();
 		for (int c = 0; c < C; ++c) {
 			HMM hmm = new HMM(HMM_maxIter);
 			hmm.train(data, HMM_K, HMM_M, seqsFracCounts[c]);
@@ -51,19 +68,20 @@ public class MixtureOfHMMs {
 		}
 	}
 
-	private void SplitDataUniformly(SequenceDataset data) {
+	private void SplitDataUniformly() {
 		for (int i = 0; i < data.size(); i++) {
 			for (int c = 0; c < C; ++c) {
-				seqsFracCounts[c][i] = 1.0 / c;
+				seqsFracCounts[c][i] = 1.0 / C;
 			}
 		}
 	}
 
-	private void SplitDataRandomly(SequenceDataset data) {
+	private void SplitDataRandomly() {
+		Random random = new Random(1);
 		for (int i = 0; i < data.size(); i++) {
 			double[] seqFracCounts = new double[C];
 			for (int c = 0; c < C; ++c) {
-				seqFracCounts[c] = new Random().nextDouble();
+				seqFracCounts[c] = random.nextDouble();
 			}
 			ArrayUtils.normalize(seqFracCounts);
 			for (int c = 0; c < C; ++c) {
@@ -72,13 +90,13 @@ public class MixtureOfHMMs {
 		}
 	}
 
-	private void SplitDataByKMeans(SequenceDataset data, boolean useTwiceLongFeatures) {
+	private void SplitDataByKMeans(boolean useTwiceLongFeatures) {
 		CheckinDataset bgd = new CheckinDataset();
 		bgd.load(data);
 		Background b = new Background(BG_maxIter);
 		b.train(bgd, BG_numState);
-		List<RealVector> featureVecs = new ArrayList<RealVector>(data.size());
-		List<Double> weights = new ArrayList<Double>(data.size());
+		List<RealVector> featureVecs = new ArrayList<RealVector>();
+		List<Double> weights = new ArrayList<Double>();
 		for (int i = 0; i < data.size(); i++) {
 			if (useTwiceLongFeatures) { // use BG_numState*2 dimension feature vectors
 				RealVector featureVec = new ArrayRealVector(BG_numState * 2);
@@ -89,8 +107,8 @@ public class MixtureOfHMMs {
 						featureVec.setEntry(2 * state + n, Math.exp(membership));
 					}
 				}
-				featureVecs.set(i, featureVec);
-				weights.set(i, 1.0);
+				featureVecs.add(i, featureVec);
+				weights.add(i, 1.0);
 			} else { // use BG_numState dimension feature vectors
 				RealVector featureVec = new ArrayRealVector(BG_numState);
 				for (int state = 0; state < BG_numState; ++state) {
@@ -99,8 +117,8 @@ public class MixtureOfHMMs {
 							data.getTextDatum(2 * i + 1));
 					featureVec.setEntry(state, Math.exp(membership));
 				}
-				featureVecs.set(i, featureVec);
-				weights.set(i, 1.0);
+				featureVecs.add(i, featureVec);
+				weights.add(i, 1.0);
 			}
 		}
 		KMeans kMeans = new KMeans(500);
@@ -111,28 +129,28 @@ public class MixtureOfHMMs {
 				seqsFracCounts[c][i] = 1;
 				for (int other_c = 0; other_c < C; ++other_c) {
 					if (other_c != c) {
-						seqsFracCounts[c][i] = 0;
+						seqsFracCounts[other_c][i] = 0;
 					}
 				}
 			}
 		}
 	}
 
-	private void eStep(SequenceDataset data) {
+	private void eStep() {
 		for (int i = 0; i < data.size(); i++) {
 			Sequence seq = data.getSequence(i);
 			double[] posteriors = new double[C];
 			for (int c = 0; c < C; ++c) {
-				posteriors[c] = Math.exp(hmms.get(c).calcSeqScore(seq));
+				posteriors[c] = hmms.get(c).calcSeqScore(seq);
 			}
-			ArrayUtils.normalize(posteriors);
+			ArrayUtils.logNormalize(posteriors);
 			for (int c = 0; c < C; ++c) {
 				seqsFracCounts[c][i] = posteriors[c];
 			}
 		}
 	}
 
-	private void mStep(SequenceDataset data) {
+	private void mStep() {
 		for (int c = 0; c < C; ++c) {
 			HMM hmm = hmms.get(c);
 			hmm.update(data, seqsFracCounts[c]);

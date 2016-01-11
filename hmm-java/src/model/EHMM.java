@@ -2,6 +2,7 @@ package model;
 
 import java.util.*;
 import myutils.*;
+import predict.EHMMPredictor;
 
 import org.apache.commons.math3.linear.ArrayRealVector;
 import org.apache.commons.math3.linear.RealVector;
@@ -9,10 +10,11 @@ import org.apache.commons.math3.linear.RealVector;
 import cluster.KMeans;
 import data.Checkin;
 import data.CheckinDataset;
+import data.PredictionDataset;
 import data.Sequence;
 import data.SequenceDataset;
 
-public class MixtureOfHMMs_User {
+public class EHMM {
 	int MaxIter;
 	int BG_maxIter;
 	int BG_numState;
@@ -22,10 +24,11 @@ public class MixtureOfHMMs_User {
 	int C; // The number of clusters (every cluster is corresponding to a hmm).
 	ArrayList<HMM> hmms = new ArrayList<HMM>(C);
 	double[][] seqsFracCounts;
-	HashMap<Long, HashSet<Integer>> user2seqs = new HashMap<Long, HashSet<Integer>>();
+	public HashMap<Long, HashSet<Integer>> user2seqs = new HashMap<Long, HashSet<Integer>>();
+	double totalLL = 0;
+	SequenceDataset data;
 
-	public MixtureOfHMMs_User(int MaxIter, int BG_numState, int BG_maxIter, int HMM_maxIter, int HMM_K, int HMM_M,
-			int C) {
+	public EHMM(int MaxIter, int BG_numState, int BG_maxIter, int HMM_maxIter, int HMM_K, int HMM_M, int C) {
 		this.MaxIter = MaxIter;
 		this.BG_maxIter = BG_maxIter;
 		this.BG_numState = BG_numState;
@@ -35,17 +38,43 @@ public class MixtureOfHMMs_User {
 		this.C = C;
 	}
 
-	public void train(SequenceDataset data) {
+	public void train(SequenceDataset data) throws Exception {
+		PredictionDataset pd = data.extractTestData();
+		pd.genCandidates(3, 240);
+
+		this.data = data;
 		seqsFracCounts = new double[C][data.size()];
-		calcUser2seqs(data);
-		initHMMs(data);
+		calcUser2seqs();
+		initHMMs();
+		double prevLL = totalLL;
 		for (int iter = 0; iter < MaxIter; iter++) {
-			eStep(data);
-			mStep(data);
+			calcTotalLL();
+			System.out.println("EHMM finished iteration " + iter + ". Log-likelihood:" + totalLL);
+			//			System.out.println("Time: " + new Date());
+			EHMMPredictor up = new EHMMPredictor(this);
+			up.predict(pd, 3);
+			up.printAccuracy();
+
+			eStep();
+			mStep();
+
+			if (Math.abs(totalLL - prevLL) <= 0.01)
+				break;
+			prevLL = totalLL;
+		}
+		EHMMPredictor up = new EHMMPredictor(this);
+		up.predict(pd, 3);
+		up.printAccuracy();
+	}
+
+	private void calcTotalLL() {
+		totalLL = 0;
+		for (HMM hmm : hmms) {
+			totalLL += hmm.getTotalLL();
 		}
 	}
 
-	public void calcUser2seqs(SequenceDataset data) {
+	public void calcUser2seqs() {
 		for (int i = 0; i < data.size(); i++) {
 			Sequence seq = data.getSequence(i);
 			long user = seq.getUserId();
@@ -56,8 +85,9 @@ public class MixtureOfHMMs_User {
 		}
 	}
 
-	private void initHMMs(SequenceDataset data) {
-		SplitDataByKMeans(data, true);
+	private void initHMMs() {
+		//				SplitDataRandomly();
+		SplitDataByKMeans(true);
 		for (int c = 0; c < C; ++c) {
 			HMM hmm = new HMM(HMM_maxIter);
 			hmm.train(data, HMM_K, HMM_M, seqsFracCounts[c]);
@@ -65,19 +95,20 @@ public class MixtureOfHMMs_User {
 		}
 	}
 
-	private void SplitDataUniformly(SequenceDataset data) {
+	private void SplitDataUniformly() {
 		for (int i = 0; i < data.size(); i++) {
 			for (int c = 0; c < C; ++c) {
-				seqsFracCounts[c][i] = 1.0 / c;
+				seqsFracCounts[c][i] = 1.0 / C;
 			}
 		}
 	}
 
-	private void SplitDataRandomly(SequenceDataset data) {
+	private void SplitDataRandomly() {
+		Random random = new Random(1);
 		for (long user : user2seqs.keySet()) {
 			double[] seqFracCounts = new double[C];
 			for (int c = 0; c < C; ++c) {
-				seqFracCounts[c] = new Random().nextDouble();
+				seqFracCounts[c] = random.nextDouble();
 			}
 			ArrayUtils.normalize(seqFracCounts);
 			for (int i : user2seqs.get(user)) {
@@ -88,13 +119,13 @@ public class MixtureOfHMMs_User {
 		}
 	}
 
-	private void SplitDataByKMeans(SequenceDataset data, boolean useTwiceLongFeatures) {
+	private void SplitDataByKMeans(boolean useTwiceLongFeatures) {
 		CheckinDataset bgd = new CheckinDataset();
 		bgd.load(data);
 		Background b = new Background(BG_maxIter);
 		b.train(bgd, BG_numState);
-		List<RealVector> featureVecs = new ArrayList<RealVector>(data.size());
-		List<Double> weights = new ArrayList<Double>(data.size());
+		List<RealVector> featureVecs = new ArrayList<RealVector>();
+		List<Double> weights = new ArrayList<Double>();
 		HashMap<Integer, Long> u2user = new HashMap<Integer, Long>(); // u is the index of user
 		int u = 0;
 		for (long user : user2seqs.keySet()) {
@@ -106,9 +137,9 @@ public class MixtureOfHMMs_User {
 						for (int i : user2seqs.get(user)) {
 							double membership = b.calcLL(data.getGeoDatum(2 * i + n), data.getTemporalDatum(2 * i + n),
 									data.getTextDatum(2 * i + n));
-							featureVec.addToEntry(2 * state + n, membership);
+							featureVec.addToEntry(2 * state + n, membership / user2seqs.get(user).size());
 						}
-						featureVec.setEntry(2 * state + n, Math.exp(featureVec.getEntry(2 * state + n))); // transform to probability
+						//						featureVec.setEntry(2 * state + n, Math.exp(featureVec.getEntry(2 * state + n))); // transform to probability
 					}
 				}
 			} else { // use BG_numState dimension feature vectors
@@ -118,18 +149,22 @@ public class MixtureOfHMMs_User {
 						double membership = b.calcLL(data.getGeoDatum(2 * i), data.getTemporalDatum(2 * i),
 								data.getTextDatum(2 * i), data.getGeoDatum(2 * i + 1), data.getTemporalDatum(2 * i + 1),
 								data.getTextDatum(2 * i + 1));
-						featureVec.addToEntry(state, membership);
+						featureVec.addToEntry(state, membership / user2seqs.get(user).size());
 					}
-					featureVec.setEntry(state, Math.exp(featureVec.getEntry(state))); // transform to probability
+					//					featureVec.setEntry(state, Math.exp(featureVec.getEntry(state))); // transform to probability
 				}
 			}
-			featureVecs.set(u, featureVec);
-			weights.set(u, 1.0);
+			featureVecs.add(u, featureVec);
+			weights.add(u, 1.0);
 			u2user.put(u, user);
 			++u;
 		}
 		KMeans kMeans = new KMeans(500);
 		List<Integer>[] kMeansResults = kMeans.cluster(featureVecs, weights, C);
+		System.out.println(featureVecs.size());
+		for (List<Integer> kMeansResult : kMeansResults) {
+			System.out.println(kMeansResult.size());
+		}
 		for (int c = 0; c < C; ++c) {
 			List<Integer> members = kMeansResults[c];
 			for (int member : members) {
@@ -138,7 +173,7 @@ public class MixtureOfHMMs_User {
 					seqsFracCounts[c][i] = 1;
 					for (int other_c = 0; other_c < C; ++other_c) {
 						if (other_c != c) {
-							seqsFracCounts[c][i] = 0;
+							seqsFracCounts[other_c][i] = 0;
 						}
 					}
 				}
@@ -146,17 +181,9 @@ public class MixtureOfHMMs_User {
 		}
 	}
 
-	private void eStep(SequenceDataset data) {
+	private void eStep() {
 		for (long user : user2seqs.keySet()) {
-			double[] posteriors = new double[C];
-			for (int c = 0; c < C; ++c) {
-				for (int i : user2seqs.get(user)) {
-					Sequence seq = data.getSequence(i);
-					posteriors[c] += hmms.get(c).calcSeqScore(seq);
-				}
-				posteriors[c] = Math.exp(posteriors[c]);
-			}
-			ArrayUtils.normalize(posteriors);
+			double[] posteriors = getPosteriors(user);
 			for (int i : user2seqs.get(user)) {
 				for (int c = 0; c < C; ++c) {
 					seqsFracCounts[c][i] = posteriors[c];
@@ -165,10 +192,33 @@ public class MixtureOfHMMs_User {
 		}
 	}
 
-	private void mStep(SequenceDataset data) {
+	private void mStep() {
 		for (int c = 0; c < C; ++c) {
 			HMM hmm = hmms.get(c);
 			hmm.update(data, seqsFracCounts[c]);
 		}
+	}
+
+	private double[] getPosteriors(long user) {
+		double[] posteriors = new double[C];
+		if (user2seqs.containsKey(user)) {
+			for (int c = 0; c < C; ++c) {
+				for (int i : user2seqs.get(user)) {
+					Sequence seq = data.getSequence(i);
+					posteriors[c] += hmms.get(c).calcSeqScore(seq);
+				}
+			}
+		}
+		ArrayUtils.logNormalize(posteriors);
+		return posteriors;
+	}
+
+	public double calcLL(long user, List<RealVector> geo, List<RealVector> temporal, List<Map<Integer, Integer>> text) {
+		double LL = 0;
+		double[] posteriors = getPosteriors(user); // The posteriors here serve as priors.
+		for (int c = 0; c < C; ++c) {
+			LL += posteriors[c] * hmms.get(c).calcLL(geo, temporal, text, true);
+		}
+		return LL;
 	}
 }

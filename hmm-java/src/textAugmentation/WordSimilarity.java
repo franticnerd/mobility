@@ -10,10 +10,10 @@ import data.WordDataset;
 import demo.Test;
 
 //compute and maintain word feature vector (every dimension is a stGrid) and word similarities
-public class WordSimilarity implements Serializable{
+public class WordSimilarity implements Serializable {
 	final int LngGridNum = 10;
 	final int LatGridNum = 10;
-	final double SimilarityThresh = 0.05;
+	final double SimilarityThresh = 0.1;
 
 	WordDataset wd = null;
 	HashMap<Integer, HashMap<StGrid, Double>> word2stGrids = new HashMap<Integer, HashMap<StGrid, Double>>();
@@ -79,10 +79,8 @@ public class WordSimilarity implements Serializable{
 				}
 			}
 		}
-		System.out.println(wd.size());
-		System.out.println(word2stGrids.keySet().size());
-		System.out.println(similarities.keySet().size());
-		System.out.println(count);
+		System.out.println("wd size: " + wd.size());
+		System.out.println("similar pairs: " + count);
 	}
 
 	public Integer getStGridNum(int word) {
@@ -99,23 +97,23 @@ public class WordSimilarity implements Serializable{
 		return new MapVectorUtils<StGrid>().cosine(stGrids1, stGrids2);
 	}
 
-//	public void printHighlySimilarPairs() throws Exception {
-//		List<RankedObject> rankedWordPairs = new ArrayList<RankedObject>();
-//		for (Integer word1 : word2stGrids.keySet()) {
-//			for (Integer word2 : word2stGrids.keySet()) {
-//				if (similarities.containsKey(word1) && similarities.get(word1).containsKey(word2)) {
-//					double similarityScore = similarities.get(word1).get(word2);
-//					if (similarityScore > SimilarityThresh) {
-//						String gridNum1 = getStGridNum(word1).toString();
-//						String gridNum2 = getStGridNum(word2).toString();
-//						String ps = String.join("\t", wd.getWord(word1), wd.getWord(word2), gridNum1, gridNum2);
-//						rankedWordPairs.add(new RankedObject(ps, similarityScore));
-//					}
-//				}
-//			}
-//		}
-//		Collections.sort(rankedWordPairs);
-////		new CollectionFile<>(Test.WorkPath + "results/wordSimilarity.txt").writeFrom(rankedWordPairs);
-//	}
+	//	public void printHighlySimilarPairs() throws Exception {
+	//		List<RankedObject> rankedWordPairs = new ArrayList<RankedObject>();
+	//		for (Integer word1 : word2stGrids.keySet()) {
+	//			for (Integer word2 : word2stGrids.keySet()) {
+	//				if (similarities.containsKey(word1) && similarities.get(word1).containsKey(word2)) {
+	//					double similarityScore = similarities.get(word1).get(word2);
+	//					if (similarityScore > SimilarityThresh) {
+	//						String gridNum1 = getStGridNum(word1).toString();
+	//						String gridNum2 = getStGridNum(word2).toString();
+	//						String ps = String.join("\t", wd.getWord(word1), wd.getWord(word2), gridNum1, gridNum2);
+	//						rankedWordPairs.add(new RankedObject(ps, similarityScore));
+	//					}
+	//				}
+	//			}
+	//		}
+	//		Collections.sort(rankedWordPairs);
+	////		new CollectionFile<>(Test.WorkPath + "results/wordSimilarity.txt").writeFrom(rankedWordPairs);
+	//	}
 
 }

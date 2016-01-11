@@ -14,10 +14,11 @@ public class Augmenter {
 	WordIdf wordIdf = null;
 	HashMap<Integer, HashMap<Integer, Double>> similarities = null;
 
-	public Augmenter(SequenceDataset sequenceDataset, WordDataset wd) {
+	public Augmenter(SequenceDataset sequenceDataset, WordDataset wd, int lngGridNum, int latGridNum,
+			double similarityThresh) {
 		this.wd = wd;
 		wordIdf = new WordIdf(sequenceDataset);
-		WordSimilarity ws = new WordSimilarity(sequenceDataset, wd);
+		WordSimilarity ws = new WordSimilarity(sequenceDataset, wd, lngGridNum, latGridNum, similarityThresh);
 		similarities = ws.getSimilarities();
 	}
 

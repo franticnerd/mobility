@@ -11,16 +11,20 @@ import demo.Test;
 
 //compute and maintain word feature vector (every dimension is a stGrid) and word similarities
 public class WordSimilarity implements Serializable {
-	final int LngGridNum = 10;
-	final int LatGridNum = 10;
-	final double SimilarityThresh = 0.1;
+	int lngGridNum = 10;
+	int latGridNum = 10;
+	double similarityThresh = 0.1;
 
 	WordDataset wd = null;
 	HashMap<Integer, HashMap<StGrid, Double>> word2stGrids = new HashMap<Integer, HashMap<StGrid, Double>>();
 	HashMap<Integer, HashMap<Integer, Double>> similarities = new HashMap<Integer, HashMap<Integer, Double>>();
 
-	public WordSimilarity(SequenceDataset sequenceDataset, WordDataset wd) {
+	public WordSimilarity(SequenceDataset sequenceDataset, WordDataset wd, int lngGridNum, int latGridNum,
+			double similarityThresh) {
 		this.wd = wd;
+		this.lngGridNum = lngGridNum;
+		this.latGridNum = latGridNum;
+		this.similarityThresh = similarityThresh;
 		double lngMax = Double.MIN_VALUE;
 		double latMax = Double.MIN_VALUE;
 		double lngMin = Double.MAX_VALUE;
@@ -50,8 +54,8 @@ public class WordSimilarity implements Serializable {
 				int timeGrid = calendar.get(Calendar.HOUR_OF_DAY);
 				double lng = checkin.getLocation().getLng();
 				double lat = checkin.getLocation().getLat();
-				int lngGrid = (int) Math.ceil((lng - lngMin) * LngGridNum / (lngMax - lngMin));
-				int latGrid = (int) Math.ceil((lat - latMin) * LatGridNum / (latMax - latMin));
+				int lngGrid = (int) Math.ceil((lng - lngMin) * lngGridNum / (lngMax - lngMin));
+				int latGrid = (int) Math.ceil((lat - latMin) * latGridNum / (latMax - latMin));
 				StGrid stGrid = new StGrid(lngGrid, latGrid, timeGrid);
 				//				System.out.print(stGrid);
 				for (Integer word : checkin.getMessage().keySet()) {
@@ -70,7 +74,7 @@ public class WordSimilarity implements Serializable {
 		for (Integer word1 : word2stGrids.keySet()) {
 			for (Integer word2 : word2stGrids.keySet()) {
 				double similarityScore = computeSimilarity(word1, word2);
-				if (similarityScore > SimilarityThresh) {
+				if (similarityScore > similarityThresh) {
 					++count;
 					if (!similarities.containsKey(word1)) {
 						similarities.put(word1, new HashMap<Integer, Double>());
@@ -97,23 +101,23 @@ public class WordSimilarity implements Serializable {
 		return new MapVectorUtils<StGrid>().cosine(stGrids1, stGrids2);
 	}
 
-	//	public void printHighlySimilarPairs() throws Exception {
-	//		List<RankedObject> rankedWordPairs = new ArrayList<RankedObject>();
-	//		for (Integer word1 : word2stGrids.keySet()) {
-	//			for (Integer word2 : word2stGrids.keySet()) {
-	//				if (similarities.containsKey(word1) && similarities.get(word1).containsKey(word2)) {
-	//					double similarityScore = similarities.get(word1).get(word2);
-	//					if (similarityScore > SimilarityThresh) {
-	//						String gridNum1 = getStGridNum(word1).toString();
-	//						String gridNum2 = getStGridNum(word2).toString();
-	//						String ps = String.join("\t", wd.getWord(word1), wd.getWord(word2), gridNum1, gridNum2);
-	//						rankedWordPairs.add(new RankedObject(ps, similarityScore));
-	//					}
-	//				}
-	//			}
-	//		}
-	//		Collections.sort(rankedWordPairs);
-	////		new CollectionFile<>(Test.WorkPath + "results/wordSimilarity.txt").writeFrom(rankedWordPairs);
-	//	}
+	public void printHighlySimilarPairs() throws Exception {
+		List<RankedObject> rankedWordPairs = new ArrayList<RankedObject>();
+		for (Integer word1 : word2stGrids.keySet()) {
+			for (Integer word2 : word2stGrids.keySet()) {
+				if (similarities.containsKey(word1) && similarities.get(word1).containsKey(word2)) {
+					double similarityScore = similarities.get(word1).get(word2);
+					if (similarityScore > similarityThresh) {
+						String gridNum1 = getStGridNum(word1).toString();
+						String gridNum2 = getStGridNum(word2).toString();
+						String ps = String.join("\t", wd.getWord(word1), wd.getWord(word2), gridNum1, gridNum2);
+						rankedWordPairs.add(new RankedObject(ps, similarityScore));
+					}
+				}
+			}
+		}
+		Collections.sort(rankedWordPairs);
+		//		new CollectionFile<>(Test.WorkPath + "results/wordSimilarity.txt").writeFrom(rankedWordPairs);
+	}
 
 }

@@ -25,10 +25,10 @@ public class SequenceDataset {
 
 	public void load(String sequenceFile) throws IOException {
 		testRatio = 0;
-		load(sequenceFile, 0);
+		load(sequenceFile, 0, false);
 	}
 
-	public void load(String sequenceFile, double testRatio) throws IOException {
+	public void load(String sequenceFile, double testRatio, boolean filterTest) throws IOException {
 		this.testRatio = testRatio;
 		List<Sequence> allSeqs = new ArrayList<Sequence>();
 		BufferedReader br = new BufferedReader(new FileReader(sequenceFile));
@@ -44,7 +44,9 @@ public class SequenceDataset {
 		Collections.shuffle(allSeqs, new Random(1));
 		trainseqs = allSeqs.subList(0, (int) (allSeqs.size() * (1 - testRatio)));
 		testSeqs = allSeqs.subList((int) (allSeqs.size() * (1 - testRatio)), allSeqs.size());
-		//		setTestSeqs(allSeqs);
+		if (filterTest) {
+			filterTestSeqs(allSeqs);
+		}
 
 		// Geo, temporal and text data.
 		geoData = new ArrayList<RealVector>();
@@ -64,25 +66,28 @@ public class SequenceDataset {
 		System.out.println("Loading geo, temporal, and textual data finished.");
 	}
 
-	public void augmentText(WordDataset wd, int augmentedSize) {
-		Augmenter augmenter = new Augmenter(this, wd);
-		//		textData.clear();
-		for (Sequence sequence : trainseqs) {
-			List<Checkin> checkins = sequence.getCheckins();
-			for (Checkin c : checkins) {
-				//				c.setMessage(augmenter.getAugmentedText(c.getMessage(), augmentedSize));
-				//				textData.add(c.getMessage());
+	public void augmentText(Augmenter augmenter, int augmentedSize, boolean augmentTrain, boolean augmentTest) {
+		if (augmentTrain) {
+			textData.clear();
+			for (Sequence sequence : trainseqs) {
+				List<Checkin> checkins = sequence.getCheckins();
+				for (Checkin c : checkins) {
+					c.setMessage(augmenter.getAugmentedText(c.getMessage(), augmentedSize));
+					textData.add(c.getMessage());
+				}
 			}
 		}
-		for (Sequence sequence : testSeqs) {
-			List<Checkin> checkins = sequence.getCheckins();
-			for (Checkin c : checkins) {
-				c.setMessage(augmenter.getAugmentedText(c.getMessage(), augmentedSize));
+		if (augmentTest) {
+			for (Sequence sequence : testSeqs) {
+				List<Checkin> checkins = sequence.getCheckins();
+				for (Checkin c : checkins) {
+					c.setMessage(augmenter.getAugmentedText(c.getMessage(), augmentedSize));
+				}
 			}
 		}
 	}
 
-	private void setTestSeqs(List<Sequence> allSeqs) {
+	private void filterTestSeqs(List<Sequence> allSeqs) {
 		HashMap<Long, HashSet<Integer>> user2seqs = new HashMap<Long, HashSet<Integer>>();
 		for (int i = 0; i < trainseqs.size(); i++) {
 			Sequence seq = trainseqs.get(i);
@@ -100,7 +105,7 @@ public class SequenceDataset {
 				testSeqs.add(seq);
 			}
 		}
-		System.out.println("testSeqs size: " + testSeqs.size());
+		System.out.println("filtered testSeqs size: " + testSeqs.size());
 	}
 
 	public void setNumWords(int numWords) {

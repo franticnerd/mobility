@@ -14,31 +14,50 @@ import data.PredictionDataset;
 import data.Sequence;
 import data.SequenceDataset;
 
+// Ensemble of HMMs
 public class EHMM {
 	int MaxIter;
-	int BG_maxIter;
 	int BG_numState;
-	int HMM_maxIter;
 	int HMM_K;
 	int HMM_M;
 	int C; // The number of clusters (every cluster is corresponding to a hmm).
+	String initMethod;
+	
 	ArrayList<HMM> hmms = new ArrayList<HMM>(C);
 	double[][] seqsFracCounts;
 	public HashMap<Long, HashSet<Integer>> user2seqs = new HashMap<Long, HashSet<Integer>>();
 	double totalLL = 0;
 	SequenceDataset data;
 
-	public EHMM(int MaxIter, int BG_numState, int BG_maxIter, int HMM_maxIter, int HMM_K, int HMM_M, int C) {
+	public EHMM(int MaxIter, int BG_numState, int HMM_K, int HMM_M, int C, String initMethod) {
 		this.MaxIter = MaxIter;
-		this.BG_maxIter = BG_maxIter;
 		this.BG_numState = BG_numState;
-		this.HMM_maxIter = HMM_maxIter;
 		this.HMM_K = HMM_K;
 		this.HMM_M = HMM_M;
 		this.C = C;
+		this.initMethod = initMethod;
 	}
 
 	public void train(SequenceDataset data) throws Exception {
+		this.data = data;
+		seqsFracCounts = new double[C][data.size()];
+		calcUser2seqs();
+		initHMMs();
+		double prevLL = totalLL;
+		for (int iter = 0; iter < MaxIter; iter++) {
+			calcTotalLL();
+			System.out.println("EHMM finished iteration " + iter + ". Log-likelihood:" + totalLL);
+
+			eStep();
+			mStep();
+
+			if (Math.abs(totalLL - prevLL) <= 0.01)
+				break;
+			prevLL = totalLL;
+		}
+	}
+	
+	public void testWhileTrain(SequenceDataset data, boolean avgTest) throws Exception {
 		PredictionDataset pd = data.extractTestData();
 		pd.genCandidates(3, 240);
 
@@ -50,8 +69,8 @@ public class EHMM {
 		for (int iter = 0; iter < MaxIter; iter++) {
 			calcTotalLL();
 			System.out.println("EHMM finished iteration " + iter + ". Log-likelihood:" + totalLL);
-			//			System.out.println("Time: " + new Date());
-			EHMMPredictor up = new EHMMPredictor(this);
+			
+			EHMMPredictor up = new EHMMPredictor(this,avgTest);
 			up.predict(pd, 3);
 			up.printAccuracy();
 
@@ -62,7 +81,7 @@ public class EHMM {
 				break;
 			prevLL = totalLL;
 		}
-		EHMMPredictor up = new EHMMPredictor(this);
+		EHMMPredictor up = new EHMMPredictor(this,avgTest);
 		up.predict(pd, 3);
 		up.printAccuracy();
 	}
@@ -86,10 +105,20 @@ public class EHMM {
 	}
 
 	private void initHMMs() {
-		//				SplitDataRandomly();
-		SplitDataByKMeans(true);
+		if(initMethod.equals("random")){
+			SplitDataRandomly();
+		}
+		if(initMethod.equals("uniform")){
+			SplitDataUniformly();
+		}
+		if(initMethod.equals("kmeans_k")){
+			SplitDataByKMeans(false);
+		}
+		if(initMethod.equals("kmeans_2k")){
+			SplitDataByKMeans(true);
+		}
 		for (int c = 0; c < C; ++c) {
-			HMM hmm = new HMM(HMM_maxIter);
+			HMM hmm = new HMM(MaxIter);
 			hmm.train(data, HMM_K, HMM_M, seqsFracCounts[c]);
 			hmms.add(hmm);
 		}
@@ -122,7 +151,7 @@ public class EHMM {
 	private void SplitDataByKMeans(boolean useTwiceLongFeatures) {
 		CheckinDataset bgd = new CheckinDataset();
 		bgd.load(data);
-		Background b = new Background(BG_maxIter);
+		Background b = new Background(MaxIter);
 		b.train(bgd, BG_numState);
 		List<RealVector> featureVecs = new ArrayList<RealVector>();
 		List<Double> weights = new ArrayList<Double>();
@@ -213,11 +242,11 @@ public class EHMM {
 		return posteriors;
 	}
 
-	public double calcLL(long user, List<RealVector> geo, List<RealVector> temporal, List<Map<Integer, Integer>> text) {
+	public double calcLL(long user, List<RealVector> geo, List<RealVector> temporal, List<Map<Integer, Integer>> text,boolean avgTest) {
 		double LL = 0;
 		double[] posteriors = getPosteriors(user); // The posteriors here serve as priors.
 		for (int c = 0; c < C; ++c) {
-			LL += posteriors[c] * hmms.get(c).calcLL(geo, temporal, text, true);
+			LL += posteriors[c] * hmms.get(c).calcLL(geo, temporal, text, avgTest);
 		}
 		return LL;
 	}

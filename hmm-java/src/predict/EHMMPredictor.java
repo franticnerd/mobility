@@ -19,11 +19,13 @@ import java.util.Set;
 public class EHMMPredictor extends Predictor {
 
 	EHMM model;
+	boolean avgTest;
 
-	public EHMMPredictor(EHMM model) {
+	public EHMMPredictor(EHMM model, boolean avgTest) {
 		this.model = model;
+		this.avgTest = avgTest;
 	}
-	
+
 	public ScoreCell calcScore(Sequence m, Checkin p) {
 		Checkin startPlace = m.getCheckin(0);
 		List<RealVector> geo = new ArrayList<RealVector>();
@@ -35,7 +37,7 @@ public class EHMMPredictor extends Predictor {
 		geo.add(p.getLocation().toRealVector());
 		temporal.add(new ArrayRealVector(new double[] { p.getTimestamp() % 1440 }));
 		text.add(p.getMessage());
-		double score = model.calcLL(m.getUserId(), geo, temporal, text);
+		double score = model.calcLL(m.getUserId(), geo, temporal, text, avgTest);
 		int checkinId = p.getId();
 		return new ScoreCell(checkinId, score);
 	}

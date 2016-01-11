@@ -17,9 +17,11 @@ import java.util.Map;
 public class HMMPredictor extends Predictor {
 
 	HMM model;
+	boolean avgTest;
 
-	public HMMPredictor(HMM model) {
+	public HMMPredictor(HMM model, boolean avgTest) {
 		this.model = model;
+		this.avgTest = avgTest;
 	}
 
 	public ScoreCell calcScore(Sequence m, Checkin p) {
@@ -33,7 +35,7 @@ public class HMMPredictor extends Predictor {
 		geo.add(p.getLocation().toRealVector());
 		temporal.add(new ArrayRealVector(new double[] { p.getTimestamp() % 1440 }));
 		text.add(p.getMessage());
-		double score = model.calcLL(geo, temporal, text, true);
+		double score = model.calcLL(geo, temporal, text, avgTest);
 		int checkinId = p.getId();
 		return new ScoreCell(checkinId, score);
 	}

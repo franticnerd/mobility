@@ -586,7 +586,7 @@ public class HMM implements Serializable {
 	 * Compute the ll of a test sequence.
 	 */
 	public double calcLL(List<RealVector> geo, List<RealVector> temporal, List<Map<Integer, Integer>> text) {
-		return calcLL(geo, temporal, text);
+		return calcLL(geo, temporal, text, false);
 	}
 
 	public double calcLL(List<RealVector> geo, List<RealVector> temporal, List<Map<Integer, Integer>> text,

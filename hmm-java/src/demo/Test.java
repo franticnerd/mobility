@@ -77,7 +77,7 @@ public class Test {
 	static void train() throws Exception {
 		boolean isTrain = ((Boolean) ((Map) config.get("model")).get("train"));
 		//      b = isTrain ? trainBackground() : mongo.loadBackground();
-		h = isTrain ? trainHMM() : mongo.loadHMM();
+		h = trainHMM();
 		e = trainEHMM();
 		//      m = isTrain ? trainMixture() : mongo.loadMixture();
 	}
@@ -124,16 +124,6 @@ public class Test {
 		return m;
 	}
 
-	static void writeModels() throws Exception {
-		if ((Boolean) ((Map) config.get("file")).get("write")) {
-			//            b.write(wd, (String) ((Map) ((Map) config.get("post")).get("keyword")).get("bgd_description"));
-			h.write(wd, (String) ((Map) ((Map) config.get("post")).get("keyword")).get("hmm_description"));
-			//            m.write(wd, (String) ((Map) ((Map) config.get("post")).get("keyword")).get("mix_description"));
-		}
-		if ((Boolean) ((Map) config.get("mongo")).get("write")) {
-			mongo.writeModels(b, h, m);
-		}
-	}
 
 	/**
 	 * ---------------------------------- Predict

@@ -1,7 +1,12 @@
 package model;
 
 import java.util.*;
+
+import com.mongodb.BasicDBObject;
+import com.mongodb.DBObject;
+import com.mongodb.gridfs.GridFS;
 import myutils.*;
+import org.bson.BSON;
 import predict.EHMMPredictor;
 
 import org.apache.commons.math3.linear.ArrayRealVector;
@@ -250,4 +255,17 @@ public class EHMM {
 		}
 		return LL;
 	}
+
+	/**
+	 * To-Do: convert to BSon and load
+	 */
+
+	public DBObject statsToBson() {
+		DBObject o = new BasicDBObject();
+		o.put("C", C);
+		o.put("K", HMM_K);
+		o.put("Init", initMethod);
+		return o;
+	}
+
 }

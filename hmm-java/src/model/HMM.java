@@ -676,6 +676,17 @@ public class HMM implements Serializable {
 		return o;
 	}
 
+
+	public DBObject statsToBson() {
+		DBObject o = new BasicDBObject();
+		o.put("maxIter", maxIter);
+		o.put("R", R);
+		o.put("K", K);
+		o.put("M", M);
+		o.put("V", V);
+		return o;
+	}
+
 	public void load(DBObject o) {
 		this.R = (Integer) o.get("R");
 		this.K = (Integer) o.get("K");

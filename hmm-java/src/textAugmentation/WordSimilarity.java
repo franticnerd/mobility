@@ -120,4 +120,5 @@ public class WordSimilarity implements Serializable {
 		//		new CollectionFile<>(Test.WorkPath + "results/wordSimilarity.txt").writeFrom(rankedWordPairs);
 	}
 
+
 }

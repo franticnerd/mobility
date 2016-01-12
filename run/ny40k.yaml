@@ -1,5 +1,4 @@
 file:
-  write: yes
   # dir: &DIR /Users/keyangzhang/Documents/UIUC/Research/Mobility/data/ny40k/
   dir: &DIR /Users/chao/Dataset/hmm-mobility/ny40k/
   raw:
@@ -22,6 +21,7 @@ mongo:
   sequences: hmm_seqs
   words: hmm_words
   models: hmm_models
+  exps: hmm_exp
 
 
 preprocess:
@@ -34,33 +34,34 @@ preprocess:
 
 # added by Keyang
 augment:
-  LngGridNum: 10
-  LatGridNum: 10
-  SimilarityThresh: 0.1
+  # number of bins for the longitude and latitude axis
+  numAxisBin: 10
   augmentTrain: no
-  augmentTest: yes
+  augmentTest: no
   augmentedSize: 10
+  threshold: [0.1, 0.2, 0.3] # similarity threshold
+  evalThresh: yes
 
+hmm:
+  maxIter: 5
+  # for the hmm model
+  numState: [10, 20, 30, 40, 50]
+  numComponent: 1
+  evalNumState: yes
 
-model:
-  train: yes
-  maxIter: 200
-  background:
-    numState: 10
-  hmm:
-    numState: 10
-    numComponent: 1
-  # added by Keyang
-  ehmm:
-    numCluster: 5
-    initMethod: random # possible values: random, uniform, kmeans_k, kmeans_2k
+# added by Keyang
+ehmm:
+  numCluster: [5, 10, 15, 20]
+  initMethod: [random, uniform, kmeans_k, kmeans_2k]
+  evalNumCluster: no
+  evalInitMethod: no
 
 
 predict:
   testRatio: 0.2
   distThre: 3.0
   timeThre: 240.0
-  K: 3
+  K: [1,2,3,4,5]
   # added by Keyang
   avgTest: no
   filterTest: no # if set to yes, test set will only retain the seqs of the user with at least 1 training seqs
@@ -70,14 +71,9 @@ post:
   keyword:
     K: 10
     dir: &OUT_DIR !join [*DIR, output/]
-    bgd_description: !join [*OUT_DIR, bg.txt]
     hmm_description: !join [*OUT_DIR, hmm.txt]
-    mix_description: !join [*OUT_DIR, mixture.txt]
   plot:
     dir: &DRAW_DIR !join [*DIR, output/]
     places: !join [*DRAW_DIR, places.pdf]
-    bgd_geo: !join [*DRAW_DIR, background.pdf]
     hmm_geo: !join [*DRAW_DIR, hmm.pdf]
-    mix_geo: !join [*DRAW_DIR, mixture.pdf]
-    mix_state: !join [*DRAW_DIR, mixture_state.pdf]
     hmm_state: !join [*DRAW_DIR, hmm_state.pdf]

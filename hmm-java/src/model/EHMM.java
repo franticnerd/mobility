@@ -18,17 +18,18 @@ import data.CheckinDataset;
 import data.PredictionDataset;
 import data.Sequence;
 import data.SequenceDataset;
+import distribution.Multinomial;
 
 // Ensemble of HMMs
 public class EHMM {
+	int C; // The number of clusters (every cluster is corresponding to a hmm).
 	int MaxIter;
 	int BG_numState;
 	int HMM_K;
 	int HMM_M;
-	int C; // The number of clusters (every cluster is corresponding to a hmm).
 	String initMethod;
-	
-	ArrayList<HMM> hmms = new ArrayList<HMM>(C);
+
+	ArrayList<HMM> hmms;
 	double[][] seqsFracCounts;
 	public HashMap<Long, HashSet<Integer>> user2seqs = new HashMap<Long, HashSet<Integer>>();
 	double totalLL = 0;
@@ -41,6 +42,13 @@ public class EHMM {
 		this.HMM_M = HMM_M;
 		this.C = C;
 		this.initMethod = initMethod;
+		hmms = new ArrayList<HMM>(C);
+	}
+	
+	public EHMM(DBObject o, SequenceDataset data) {
+		this.data = data;
+		calcUser2seqs();
+		load(o);
 	}
 
 	public void train(SequenceDataset data) throws Exception {
@@ -61,7 +69,7 @@ public class EHMM {
 			prevLL = totalLL;
 		}
 	}
-	
+
 	public void testWhileTrain(SequenceDataset data, boolean avgTest) throws Exception {
 		PredictionDataset pd = data.extractTestData();
 		pd.genCandidates(3, 240);
@@ -74,8 +82,8 @@ public class EHMM {
 		for (int iter = 0; iter < MaxIter; iter++) {
 			calcTotalLL();
 			System.out.println("EHMM finished iteration " + iter + ". Log-likelihood:" + totalLL);
-			
-			EHMMPredictor up = new EHMMPredictor(this,avgTest);
+
+			EHMMPredictor up = new EHMMPredictor(this, avgTest);
 			up.predict(pd, 3);
 			up.printAccuracy();
 
@@ -86,7 +94,7 @@ public class EHMM {
 				break;
 			prevLL = totalLL;
 		}
-		EHMMPredictor up = new EHMMPredictor(this,avgTest);
+		EHMMPredictor up = new EHMMPredictor(this, avgTest);
 		up.predict(pd, 3);
 		up.printAccuracy();
 	}
@@ -110,16 +118,16 @@ public class EHMM {
 	}
 
 	private void initHMMs() {
-		if(initMethod.equals("random")){
+		if (initMethod.equals("random")) {
 			SplitDataRandomly();
 		}
-		if(initMethod.equals("uniform")){
+		if (initMethod.equals("uniform")) {
 			SplitDataUniformly();
 		}
-		if(initMethod.equals("kmeans_k")){
+		if (initMethod.equals("kmeans_k")) {
 			SplitDataByKMeans(false);
 		}
-		if(initMethod.equals("kmeans_2k")){
+		if (initMethod.equals("kmeans_2k")) {
 			SplitDataByKMeans(true);
 		}
 		for (int c = 0; c < C; ++c) {
@@ -247,7 +255,8 @@ public class EHMM {
 		return posteriors;
 	}
 
-	public double calcLL(long user, List<RealVector> geo, List<RealVector> temporal, List<Map<Integer, Integer>> text,boolean avgTest) {
+	public double calcLL(long user, List<RealVector> geo, List<RealVector> temporal, List<Map<Integer, Integer>> text,
+			boolean avgTest) {
 		double LL = 0;
 		double[] posteriors = getPosteriors(user); // The posteriors here serve as priors.
 		for (int c = 0; c < C; ++c) {
@@ -267,5 +276,33 @@ public class EHMM {
 		o.put("Init", initMethod);
 		return o;
 	}
-
+	
+	public DBObject toBson() {
+		DBObject o = new BasicDBObject();
+		o.put("C", C);
+		o.put("MaxIter", MaxIter);
+		o.put("BG_numState", BG_numState);
+		o.put("K", HMM_K);
+		o.put("M", HMM_M);
+		o.put("Init", initMethod);
+		List<DBObject> dbHmms = new ArrayList<DBObject>();
+		for (HMM hmm : this.hmms)
+			dbHmms.add(hmm.toBson());
+		o.put("hmms", dbHmms);
+		return o;
+	}
+	
+	public void load(DBObject o) {
+		this.C = (Integer) o.get("C");
+		this.MaxIter = (Integer) o.get("MaxIter");
+		this.BG_numState = (Integer) o.get("BG_numState");
+		this.HMM_K = (Integer) o.get("K");
+		this.HMM_M = (Integer) o.get("M");
+		this.initMethod = (String) o.get("Init");
+		List<DBObject> dbHmms = (List<DBObject>) o.get("textModel");
+		this.hmms = new ArrayList<HMM>(C);
+		for(DBObject dbHmm:dbHmms){
+			this.hmms.add(new HMM(dbHmm));
+		}
+	}
 }

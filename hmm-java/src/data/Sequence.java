@@ -60,4 +60,11 @@ public class Sequence implements Serializable {
 		return userId;
 	}
 
+	public Sequence copy() {
+		Sequence res = new Sequence(this.userId);
+		for (Checkin c : checkins) {
+			res.addCheckin(c.copy());
+		}
+		return res;
+	}
 }

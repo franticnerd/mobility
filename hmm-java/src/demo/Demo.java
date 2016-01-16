@@ -24,7 +24,8 @@ public class Demo {
 	static Mongo mongo;
 
 	static WordDataset wd = new WordDataset();
-	static SequenceDataset hmmd = new SequenceDataset();
+	static SequenceDataset rawDb = new SequenceDataset(); // the database before augmentation
+	static SequenceDataset hmmdb = new SequenceDataset(); // the database after augmentation
 	static PredictionDataset pd;
 
 	static List<Integer> KList;
@@ -35,7 +36,6 @@ public class Demo {
 	static List<Integer> numClusterList; // the number of clusters for EHMM.
 	static List<String> initMethodList;  // the list of initalization methods for EHMM.
 
-
 	// parameters for augmentation.
 	static int numAxisBin;
 	static boolean augmentTrain;
@@ -43,6 +43,10 @@ public class Demo {
 	static int augmentedSize;
 	static List<Double> thresholdList;  // the list of similarity thresholds for augmenting text
 	static double augmentThreshold;
+
+	// parameters for prediction
+	static double distThre;
+	static double timeThre;
 
 	/**
 	 * ---------------------------------- Initialize ----------------------------------
@@ -60,8 +64,8 @@ public class Demo {
 		double testRatio = (Double) ((Map) config.get("predict")).get("testRatio");
 		boolean filterTest = (Boolean) ((Map) config.get("predict")).get("filterTest");
 		wd.load(wordFile);
-		hmmd.load(sequenceFile, testRatio, filterTest);
-		hmmd.setNumWords(wd.size());
+		rawDb.load(sequenceFile, testRatio, filterTest);
+		rawDb.setNumWords(wd.size());
 
 		// augment the text data by mining word spatiotemporal correlations.
 		thresholdList = (List<Double>) ((Map) config.get("augment")).get("threshold");
@@ -70,13 +74,14 @@ public class Demo {
 		augmentTest = (Boolean) ((Map) config.get("augment")).get("augmentTest");
 		augmentedSize = (Integer) ((Map) config.get("augment")).get("augmentedSize");
 		augmentThreshold = thresholdList.get(0);
-		Augmenter augmenter = new Augmenter(hmmd, wd, numAxisBin, numAxisBin, augmentThreshold);
-		hmmd.augmentText(augmenter, augmentedSize, augmentTrain, augmentTest);
+		Augmenter augmenter = new Augmenter(rawDb, wd, numAxisBin, numAxisBin, augmentThreshold);
+		hmmdb = rawDb.getCopy();
+		hmmdb.augmentText(augmenter, augmentedSize, augmentTrain, augmentTest);
 
 		// generate test sequences for location prediction.
-		double distThre = (Double) ((Map) config.get("predict")).get("distThre");
-		double timeThre = (Double) ((Map) config.get("predict")).get("timeThre");
-		pd = hmmd.extractTestData();
+		distThre = (Double) ((Map) config.get("predict")).get("distThre");
+		timeThre = (Double) ((Map) config.get("predict")).get("timeThre");
+		pd = hmmdb.extractTestData();
 		pd.genCandidates(distThre, timeThre);
 
 		// the model parameters
@@ -99,7 +104,7 @@ public class Demo {
 		runDistance();
 		runHMM(maxIter, numStateList.get(0), numComponent);
 		runGeoHMM(maxIter, numStateList.get(0), numComponent);
-//        runEHMM(maxIter, numClusterList.get(0), numStateList.get(0), numComponent, initMethodList.get(0));
+        runEHMM(maxIter, numClusterList.get(0), numStateList.get(0), numComponent, initMethodList.get(0));
 		// tune the parameters
 		evalNumStates();
 		evalNumCluster();
@@ -126,7 +131,7 @@ public class Demo {
 		} catch (Exception e) {
 			System.out.println("Cannot load HMM from the Mongo DB. Start HMM training.");
 			h = new HMM(maxIter);
-			h.train(hmmd, numStates, numComponent);
+			h.train(hmmdb, numStates, numComponent);
 			mongo.writeHMM(h, augmentTest, augmentThreshold);
 		}
 		// predict
@@ -146,7 +151,7 @@ public class Demo {
 		} catch (Exception e) {
 			System.out.println("Cannot load GeoHMM from the Mongo DB. Start GeoHMM training.");
 			geoHMM = new GeoHMM(maxIter);
-			geoHMM.train(hmmd, numStates, numComponent);
+			geoHMM.train(hmmdb, numStates, numComponent);
 			mongo.writeGeoHMM(geoHMM, augmentTest, augmentThreshold);
 		}
 		// predict
@@ -160,9 +165,15 @@ public class Demo {
 
 
 	static void runEHMM(int maxIter, int numCluster, int numStates, int numComponent, String initMethod) throws Exception {
-		EHMM ehmm = new EHMM(maxIter, numStates, numStates, numComponent, numCluster, initMethod);
-		ehmm.train(hmmd);
-		System.out.println("Finished training EnsembleOfHMMs.");
+		EHMM ehmm;
+		try {
+            ehmm =  mongo.loadEHMM(numStates, numCluster, initMethod, augmentTest, augmentThreshold, hmmdb);
+		} catch (Exception e) {
+			System.out.println("Cannot load EHMM from the Mongo DB. Start EHMM training.");
+			ehmm = new EHMM(maxIter, numStates, numStates, numComponent, numCluster, initMethod);
+			ehmm.train(hmmdb);
+			mongo.writeEHMM(ehmm, augmentTest, augmentThreshold);
+		}
 		EHMMPredictor ep = new EHMMPredictor(ehmm, avgTest);
 		for (Integer K : KList) {
 			ep.predict(pd, K);
@@ -179,14 +190,14 @@ public class Demo {
 		for (Integer numState : numStateList) {
 			runHMM(maxIter, numState, numComponent);
 			runGeoHMM(maxIter, numState, numComponent);
-//			runEHMM(maxIter, numClusterList.get(0), numState, numComponent, initMethodList.get(0));
+			runEHMM(maxIter, numClusterList.get(0), numState, numComponent, initMethodList.get(0));
 		}
 	}
 
 	static void evalNumCluster() throws Exception {
 		if ((Boolean) ((Map)config.get("ehmm")).get("evalNumCluster") == false)	return;
 		for (Integer numCluster : numClusterList) {
-//			runEHMM(maxIter, numCluster, numStateList.get(0), numComponent, initMethodList.get(0));
+			runEHMM(maxIter, numCluster, numStateList.get(0), numComponent, initMethodList.get(0));
 		}
 	}
 
@@ -194,21 +205,24 @@ public class Demo {
 	static void evalInitMethod() throws Exception {
 		if ((Boolean) ((Map)config.get("ehmm")).get("evalInitMethod") == false)	return;
 		for (String initMethod : initMethodList) {
-//			runEHMM(maxIter, numClusterList.get(0), numStateList.get(0), numComponent, initMethod);
+			runEHMM(maxIter, numClusterList.get(0), numStateList.get(0), numComponent, initMethod);
 		}
 	}
 
 	/**
-	 * ToDo: need to return a deep copy of the hmmd for various settings.
+	 * ToDo: need to return a deep copy of the hmmdb for various settings.
 	 */
 	static void evalAugmentation() throws Exception {
 		if ((Boolean) ((Map)config.get("augment")).get("evalThresh") == false)	return;
 		for (Double threshold : thresholdList) {
 			augmentThreshold = threshold;
-			Augmenter augmenter = new Augmenter(hmmd, wd, numAxisBin, numAxisBin, augmentThreshold);
-			hmmd.augmentText(augmenter, augmentedSize, augmentTrain, augmentTest);
+			Augmenter augmenter = new Augmenter(rawDb, wd, numAxisBin, numAxisBin, augmentThreshold);
+			hmmdb = rawDb.getCopy();
+			hmmdb.augmentText(augmenter, augmentedSize, augmentTrain, augmentTest);
+			pd = hmmdb.extractTestData();
+			pd.genCandidates(distThre, timeThre);
 			runHMM(maxIter, numStateList.get(0), numComponent);
-//			runEHMM(maxIter, numClusterList.get(0), numStateList.get(0), numComponent, initMethodList.get(0));
+			runEHMM(maxIter, numClusterList.get(0), numStateList.get(0), numComponent, initMethodList.get(0));
 		}
 	}
 

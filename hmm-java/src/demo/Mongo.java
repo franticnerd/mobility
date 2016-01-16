@@ -1,6 +1,7 @@
 package demo;
 
 import com.mongodb.*;
+import data.SequenceDataset;
 import model.*;
 import predict.DistancePredictor;
 import predict.HMMPredictor;
@@ -68,6 +69,12 @@ public class Mongo {
                 .append("augmentThreshold", augmentThreshold));
     }
 
+    public void writeEHMM(EHMM h, boolean augmentTest, double augmentThreshold) {
+        modelCol.insert(new BasicDBObject("ehmm", h.toBson())
+                .append("augment", augmentTest)
+                .append("augmentThreshold", augmentThreshold));
+    }
+
     public HMM loadHMM(int numStates, boolean augmentTest, double augmentThreshold) {
         DBObject query = new BasicDBObject("hmm.K", numStates)
                 .append("augment", augmentTest)
@@ -84,6 +91,16 @@ public class Mongo {
         return new GeoHMM((DBObject)doc.get("geohmm"));
     }
 
+    public EHMM loadEHMM(int numStates, int numCluster, String initMethod,
+                        boolean augmentTest, double augmentThreshold, SequenceDataset db) {
+        DBObject query = new BasicDBObject("ehmm.K", numStates)
+                .append("ehmm.C", numCluster)
+                .append("ehmm.Init", initMethod)
+                .append("augment", augmentTest)
+                .append("augmentThreshold", augmentThreshold);
+        DBObject doc = modelCol.findOne(query);
+        return new EHMM((DBObject)doc.get("ehmm"), db);
+    }
 
     public void writePrediction(DistancePredictor p, int K) {
         expCol.insert(new BasicDBObject("distance", null)
@@ -122,7 +139,7 @@ public class Mongo {
         String paraFile = args.length > 0 ? args[0] : "../run/ny40k.yaml";
         Map config = new Config().load(paraFile);
         Mongo m = new Mongo(config);
-//        m.modelCol.drop();
+        m.modelCol.drop();
         System.out.println(m.modelCol.count());
         for (DBObject d : m.expCol.find())
             System.out.println(d);

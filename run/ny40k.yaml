@@ -51,7 +51,7 @@ hmm:
 
 # added by Keyang
 ehmm:
-  numCluster: [5, 10, 15, 20]
+  numCluster: [2, 3, 4, 5]
   initMethod: [random, uniform, kmeans_k, kmeans_2k]
   evalNumCluster: no
   evalInitMethod: no

@@ -1,6 +1,7 @@
 package data;
 
 import java.io.Serializable;
+import java.util.HashMap;
 import java.util.Map;
 
 public class Checkin implements Serializable {
@@ -11,11 +12,12 @@ public class Checkin implements Serializable {
   int timestamp;
   Map<Integer, Integer> message;  // Key: word, Value:count
 
+
   public Checkin(int checkInId, int timestamp, long userId, double lat, double lng, Map<Integer, Integer> message) {
     this.checkinId = checkInId;
     this.timestamp = timestamp;
     this.userId = userId;
-    this.location = new Location(lat, lng);
+    this.location = new Location(lng, lat);
     this.timestamp = timestamp;
     this.message = message;
   }
@@ -66,6 +68,13 @@ public class Checkin implements Serializable {
     if (obj == this)
       return true;
     return checkinId == ((Checkin) obj).getId();
+  }
+
+  public Checkin copy() {
+    Checkin res = new Checkin(checkinId, timestamp, userId, location.getLat(), location.getLng(), null);
+    Map<Integer, Integer> copiedMessage = new HashMap(message);
+    res.setMessage(copiedMessage);
+    return res;
   }
 
 }

@@ -14,14 +14,14 @@ import java.util.*;
 public class SequenceDataset {
 
 	// training data
-	List<Sequence> trainseqs;
-	List<Map<Integer, Integer>> textData; // The text data for the R trainseqs, the length is 2R
-	List<RealVector> geoData; // The geographical data for the R seqeunces, length 2R
-	List<RealVector> temporalData; // The temporal data for the R seqeunces, length 2R
+	List<Sequence> trainseqs = new ArrayList<Sequence>();
+	List<Map<Integer, Integer>> textData = new ArrayList<Map<Integer, Integer>>(); // The text data for the R trainseqs, the length is 2R
+	List<RealVector> geoData = new ArrayList<RealVector>(); // The geographical data for the R seqeunces, length 2R
+	List<RealVector> temporalData = new ArrayList<RealVector>(); // The temporal data for the R seqeunces, length 2R
 	int numWords;
 	// test data
 	double testRatio;
-	List<Sequence> testSeqs;
+	List<Sequence> testSeqs = new ArrayList<Sequence>();
 
 	public void load(String sequenceFile) throws IOException {
 		testRatio = 0;
@@ -108,8 +108,35 @@ public class SequenceDataset {
 		System.out.println("filtered testSeqs size: " + testSeqs.size());
 	}
 
+	// add training seq
+	public void addSequence(Sequence s) {
+		this.trainseqs.add(s);
+	}
+
+	// add test seq
+	public void addTestSequence(Sequence s) {
+		this.testSeqs.add(s);
+	}
+
+	public void addTextDatum(Map<Integer, Integer> message) {
+		this.textData.add(message);
+	}
+
+	public void addGeoDatum(RealVector rv) {
+		this.geoData.add(rv);
+	}
+
+	public void addTemporalDatum(RealVector rv) {
+		this.temporalData.add(rv);
+	}
+
+
 	public void setNumWords(int numWords) {
 		this.numWords = numWords;
+	}
+
+	public void setTestRatio(double testRatio) {
+		this.testRatio = testRatio;
 	}
 
 	// Each line contains: checkin Id, userId, placeid, timestamp, message
@@ -193,6 +220,28 @@ public class SequenceDataset {
 
 	public PredictionDataset extractTestData() throws Exception {
 		return new PredictionDataset(testSeqs);
+	}
+
+	public SequenceDataset getCopy() {
+		SequenceDataset copiedDataSet = new SequenceDataset();
+		for (Sequence s : trainseqs) {
+			copiedDataSet.addSequence(s.copy());
+		}
+		for (Sequence s : testSeqs) {
+			copiedDataSet.addTestSequence(s.copy());
+		}
+		for (Map<Integer, Integer> m : textData) {
+			copiedDataSet.addTextDatum(new HashMap(m));
+		}
+		for (RealVector rv : geoData ) {
+			copiedDataSet.addGeoDatum(rv);
+		}
+		for (RealVector rv : temporalData) {
+			copiedDataSet.addTemporalDatum(rv);
+		}
+		copiedDataSet.setNumWords(this.numWords);
+		copiedDataSet.setTestRatio(this.testRatio);
+		return copiedDataSet;
 	}
 
 }

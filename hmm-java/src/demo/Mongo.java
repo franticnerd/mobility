@@ -126,7 +126,7 @@ public class Mongo {
     }
 
     public void writePredicton(EHMM h, Predictor p, boolean augmentTest, double augmentThreshold, int K) {
-        modelCol.insert(new BasicDBObject("ehmm", h.statsToBson())
+    	expCol.insert(new BasicDBObject("ehmm", h.statsToBson())
                 .append("Accuracy", p.getAccuracy())
                 .append("augment", augmentTest)
                 .append("augmentThreshold", augmentThreshold)

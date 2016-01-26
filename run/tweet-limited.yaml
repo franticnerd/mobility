@@ -22,6 +22,7 @@ mongo:
   sequences: hmm_seqs_limited
   words: hmm_words_limited
   models: hmm_models_limited
+  exps: hmm_exp_limited
 
 
 preprocess:

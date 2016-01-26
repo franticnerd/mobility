@@ -46,16 +46,6 @@ public class Mongo {
         expCol = database.getCollection(expColName);
     }
 
-    public void writeModels(HMM h, GeoHMM g) {
-        // get current time when finished running the experiments
-        modelCol.remove(new BasicDBObject());
-        modelCol.insert(new BasicDBObject("geohmm", g.toBson()));
-
-//        modelCol.insert(new BasicDBObject("background", b.toBson()));
-//        modelCol.insert(new BasicDBObject("mixture", m.toBson()));
-
-
-    }
 
     public void writeHMM(HMM h, boolean augmentTest, double augmentThreshold) {
         modelCol.insert(new BasicDBObject("hmm", h.toBson())
@@ -84,9 +74,7 @@ public class Mongo {
     }
 
     public GeoHMM loadGeoHMM(int numStates, boolean augmentTest, double augmentThreshold) {
-        DBObject query = new BasicDBObject("geohmm.K", numStates)
-                .append("augment", augmentTest)
-                .append("augmentThreshold", augmentThreshold);
+        DBObject query = new BasicDBObject("geohmm.K", numStates);
         DBObject doc = modelCol.findOne(query);
         return new GeoHMM((DBObject)doc.get("geohmm"));
     }

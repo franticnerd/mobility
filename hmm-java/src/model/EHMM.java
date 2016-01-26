@@ -299,7 +299,7 @@ public class EHMM {
 		this.HMM_K = (Integer) o.get("K");
 		this.HMM_M = (Integer) o.get("M");
 		this.initMethod = (String) o.get("Init");
-		List<DBObject> dbHmms = (List<DBObject>) o.get("textModel");
+		List<DBObject> dbHmms = (List<DBObject>) o.get("hmms");
 		this.hmms = new ArrayList<HMM>(C);
 		for(DBObject dbHmm:dbHmms){
 			this.hmms.add(new HMM(dbHmm));

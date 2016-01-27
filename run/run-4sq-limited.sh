@@ -11,14 +11,14 @@ jar_file=$java_dir'hmm-java.jar'
 # --------------------------------------------------------------------------------
 
 function pre {
-  python $python_dir'preprocess.py' $para_file
+  # python $python_dir'preprocess.py' $para_file
 }
 
 # --------------------------------------------------------------------------------
 # Step 2: run the algorithms.
 # --------------------------------------------------------------------------------
 function run {
-  java -jar -Xmx4G $jar_file $para_file
+  java -jar -Xmx5G $jar_file $para_file
 }
 
 
@@ -27,9 +27,9 @@ function run {
 # --------------------------------------------------------------------------------
 
 function post {
-  python $python_dir'plot.py' $para_file
+  # python $python_dir'plot.py' $para_file
 }
 
-pre
-# run
+# pre
+run
 # post

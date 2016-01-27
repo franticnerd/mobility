@@ -100,7 +100,7 @@ public class Demo {
 	 **/
 	static void run() throws Exception {
 		// run the predictors using default parameters
-//		runDistance();
+		runDistance();
 		//		runHMM(maxIter, numStateList.get(0), numComponent);
 		//		runGeoHMM(maxIter, numStateList.get(0), numComponent);
 		//        runEHMM(maxIter, numClusterList.get(0), numStateList.get(0), numComponent, initMethodList.get(0));
@@ -188,7 +188,7 @@ public class Demo {
 			return;
 		for (Integer numState : numStateList) {
 			runHMM(maxIter, numState, numComponent);
-//			runGeoHMM(maxIter, numState, numComponent);
+			runGeoHMM(maxIter, numState, numComponent);
 			runEHMM(maxIter, numClusterList.get(0), numState, numComponent, initMethodList.get(0));
 		}
 	}

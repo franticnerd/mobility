@@ -30,6 +30,6 @@ function post {
   python $python_dir'plot.py' $para_file
 }
 
-pre
-# run
+# pre
+run
 # post

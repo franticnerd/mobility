@@ -1,6 +1,5 @@
 file:
-  write: yes
-  # dir: &DIR /Users/keyangzhang/Documents/UIUC/Research/Mobility/data/tweet/
+  # dir: &DIR /Users/keyangzhang/Documents/UIUC/Research/Mobility/data/ny40k/
   dir: &DIR /Users/chao/Dataset/hmm-mobility/tweet-limited/
   raw:
     dir: &RAW_DIR !join [*DIR, raw/]
@@ -14,7 +13,7 @@ file:
 
 
 mongo:
-  write: yes
+  write: no
   dns: dmserv4.cs.illinois.edu
   port: 11111
   db: ny9m
@@ -27,7 +26,7 @@ mongo:
 
 preprocess:
   source: db
-  startTime: 2014-10-01 00:00:00
+  startTime: 2014-10-20 00:00:00
   endTime: 2014-10-30 00:00:00
   minGap: 60
   maxGap: 240
@@ -35,51 +34,49 @@ preprocess:
 
 # added by Keyang
 augment:
-  LngGridNum: 10
-  LatGridNum: 10
-  SimilarityThresh: 0.1
-  augmentTrain: no
+  # number of bins for the longitude and latitude axis
+  numAxisBin: [10, 15, 20]
+  augmentTrain: yes
   augmentTest: yes
-  augmentedSize: 10
+  augmentedSize: [100, 50, 20, 10]
+  threshold: [0.3, 0.2, 0.1] # similarity threshold
+  evalThresh: yes
+  evalSize: yes
+  evalNumBin: yes
 
 
-model:
-  train: yes
-  maxIter: 5
-  background:
-    numState: 30
-  hmm:
-    numState: 30
-    numComponent: 1
-  # added by Keyang
-  ehmm:
-    numCluster: 5
-    initMethod: random # possible values: random, uniform, kmeans_k, kmeans_2k
+hmm:
+  maxIter: 50
+  # for the hmm model
+  numState: [10, 5, 15, 20]
+  numComponent: 1
+  evalNumState: yes
+
+# added by Keyang
+ehmm:
+  numCluster: [2, 3, 4, 5]
+  initMethod: [random, uniform, kmeans_k, kmeans_2k]
+  evalNumCluster: no
+  evalInitMethod: no
 
 
 predict:
   testRatio: 0.2
   distThre: 3.0
   timeThre: 240.0
-  K: 3
+  K: [1,2,3,4,5]
   # added by Keyang
   avgTest: no
-  filterTest: no # if set to yes, test set will only retain the seqs of the user with at least 1 training seqs
+  filterTest: yes # if set to yes, test set will only retain the seqs of the user with at least 1 training seqs
 
 
 post:
   keyword:
     K: 10
     dir: &OUT_DIR !join [*DIR, output/]
-    bgd_description: !join [*OUT_DIR, bg.txt]
     hmm_description: !join [*OUT_DIR, hmm.txt]
-    mix_description: !join [*OUT_DIR, mixture.txt]
   plot:
-    # dir: &DRAW_DIR ../../figure/exp/4sq/
     dir: &DRAW_DIR !join [*DIR, output/]
     places: !join [*DRAW_DIR, places.pdf]
-    bgd_geo: !join [*DRAW_DIR, background.pdf]
     hmm_geo: !join [*DRAW_DIR, hmm.pdf]
-    mix_geo: !join [*DRAW_DIR, mixture.pdf]
-    mix_state: !join [*DRAW_DIR, mixture_state.pdf]
     hmm_state: !join [*DRAW_DIR, hmm_state.pdf]

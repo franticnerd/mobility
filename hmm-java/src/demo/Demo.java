@@ -267,7 +267,7 @@ public class Demo {
     /** ---------------------------------- Main ---------------------------------- **/
     public static void main(String [] args) throws Exception {
 //        String paraFile = args.length > 0 ? args[0] : "../run/ny40k.yaml";
-		String paraFile = args.length > 0 ? args[0] : "../run/tweet-limited.yaml";
+		String paraFile = args.length > 0 ? args[0] : "../run/4sq-small.yaml";
         init(paraFile);
 		run();
     }

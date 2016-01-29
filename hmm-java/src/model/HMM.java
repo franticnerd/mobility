@@ -250,7 +250,7 @@ public class HMM implements Serializable {
 			eStep(data);
 			mStep(data);
 			calcTotalLL();
-			System.out.println("HMM finished iteration " + iter + ". Log-likelihood:" + totalLL);
+//			System.out.println("HMM finished iteration " + iter + ". Log-likelihood:" + totalLL);
 			if (Math.abs(totalLL - prevLL) <= 0.01)
 				break;
 			prevLL = totalLL;

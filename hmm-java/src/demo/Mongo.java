@@ -46,49 +46,71 @@ public class Mongo {
         expCol = database.getCollection(expColName);
     }
 
+    public void writeGeoHMM(GeoHMM h) {
+        modelCol.insert(new BasicDBObject("geohmm", h.toBson()));
+    }
 
-    public void writeHMM(HMM h, boolean augmentTest, double augmentThreshold) {
+    public void writeHMM(HMM h, boolean augmentTest, double augmentThreshold, int augmentSize, int numAxisBin) {
         modelCol.insert(new BasicDBObject("hmm", h.toBson())
                 .append("augment", augmentTest)
-                .append("augmentThreshold", augmentThreshold));
+                .append("augmentThreshold", augmentThreshold)
+                .append("augmentSize", augmentSize)
+                .append("numAxisBin", numAxisBin));
     }
 
-    public void writeGeoHMM(GeoHMM h, boolean augmentTest, double augmentThreshold) {
-        modelCol.insert(new BasicDBObject("geohmm", h.toBson())
-                .append("augment", augmentTest)
-                .append("augmentThreshold", augmentThreshold));
-    }
-
-    public void writeEHMM(EHMM h, boolean augmentTest, double augmentThreshold) {
+    public void writeEHMM(EHMM h, boolean augmentTest, double augmentThreshold, int augmentSize, int numAxisBin) {
         modelCol.insert(new BasicDBObject("ehmm", h.toBson())
                 .append("augment", augmentTest)
-                .append("augmentThreshold", augmentThreshold));
+                .append("augmentThreshold", augmentThreshold)
+                .append("augmentSize", augmentSize)
+                .append("numAxisBin", numAxisBin));
     }
 
-    public HMM loadHMM(int numStates, boolean augmentTest, double augmentThreshold) {
-        DBObject query = new BasicDBObject("hmm.K", numStates)
-                .append("augment", augmentTest)
-                .append("augmentThreshold", augmentThreshold);
-        DBObject doc = modelCol.findOne(query);
-        return new HMM((DBObject)doc.get("hmm"));
-    }
-
-    public GeoHMM loadGeoHMM(int numStates, boolean augmentTest, double augmentThreshold) {
+    public GeoHMM loadGeoHMM(int numStates) {
         DBObject query = new BasicDBObject("geohmm.K", numStates);
         DBObject doc = modelCol.findOne(query);
         return new GeoHMM((DBObject)doc.get("geohmm"));
     }
 
-    public EHMM loadEHMM(int numStates, int numCluster, String initMethod,
-                        boolean augmentTest, double augmentThreshold, SequenceDataset db) {
-        DBObject query = new BasicDBObject("ehmm.K", numStates)
-                .append("ehmm.C", numCluster)
-                .append("ehmm.Init", initMethod)
-                .append("augment", augmentTest)
-                .append("augmentThreshold", augmentThreshold);
-        DBObject doc = modelCol.findOne(query);
-        return new EHMM((DBObject)doc.get("ehmm"), db);
+    public HMM loadHMM(int numStates, boolean augmentTest, double augmentThreshold, int augmentSize, int numAxisBin) {
+        if (augmentTest == false) {
+            DBObject query = new BasicDBObject("hmm.K", numStates)
+                    .append("augment", augmentTest);
+            DBObject doc = modelCol.findOne(query);
+            return new HMM((DBObject)doc.get("hmm"));
+        } else {
+            DBObject query = new BasicDBObject("hmm.K", numStates)
+                    .append("augment", augmentTest)
+                    .append("augmentThreshold", augmentThreshold)
+                    .append("augmentSize", augmentSize)
+                    .append("numAxisBin", numAxisBin);
+            DBObject doc = modelCol.findOne(query);
+            return new HMM((DBObject)doc.get("hmm"));
+        }
     }
+
+    public EHMM loadEHMM(int numStates, int numCluster, String initMethod, SequenceDataset db,
+                        boolean augmentTest, double augmentThreshold, int augmentSize, int numAxisBin) {
+        if (augmentTest == false) {
+            DBObject query = new BasicDBObject("ehmm.K", numStates)
+                    .append("ehmm.C", numCluster)
+                    .append("ehmm.Init", initMethod)
+                    .append("augment", augmentTest);
+            DBObject doc = modelCol.findOne(query);
+            return new EHMM((DBObject)doc.get("ehmm"), db);
+        } else {
+            DBObject query = new BasicDBObject("ehmm.K", numStates)
+                    .append("ehmm.C", numCluster)
+                    .append("ehmm.Init", initMethod)
+                    .append("augment", augmentTest)
+                    .append("augmentThreshold", augmentThreshold)
+                    .append("augmentSize", augmentSize)
+                    .append("numAxisBin", numAxisBin);
+            DBObject doc = modelCol.findOne(query);
+            return new EHMM((DBObject)doc.get("ehmm"), db);
+        }
+    }
+
 
     public void writePrediction(DistancePredictor p, int K) {
         expCol.insert(new BasicDBObject("distance", null)
@@ -96,28 +118,31 @@ public class Mongo {
                 .append("K", K));
     }
 
-    public void writePredicton(HMM h, Predictor p, boolean augmentTest, double augmentThreshold, int K) {
+    public void writePredicton(GeoHMM h, Predictor p, int K) {
+        expCol.insert(new BasicDBObject("geohmm", h.statsToBson())
+                .append("Accuracy", p.getAccuracy())
+                .append("K", K));
+    }
+
+    public void writePredicton(HMM h, Predictor p, boolean augmentTest, double augmentThreshold, int augmentSize, int numAxisBin, int K) {
         expCol.insert(new BasicDBObject("hmm", h.statsToBson())
                 .append("Accuracy", p.getAccuracy())
                 .append("augment", augmentTest)
                 .append("augmentThreshold", augmentThreshold)
+                .append("augmentSize", augmentSize)
+                .append("numAxisBin", numAxisBin)
                 .append("K", K));
     }
 
 
-    public void writePredicton(GeoHMM h, Predictor p, boolean augmentTest, double augmentThreshold, int K) {
-        expCol.insert(new BasicDBObject("geohmm", h.statsToBson())
-                .append("Accuracy", p.getAccuracy())
-                .append("augment", augmentTest)
-                .append("augmentThreshold", augmentThreshold)
-                .append("K", K));
-    }
 
-    public void writePredicton(EHMM h, Predictor p, boolean augmentTest, double augmentThreshold, int K) {
+    public void writePredicton(EHMM h, Predictor p, boolean augmentTest, double augmentThreshold, int augmentSize, int numAxisBin, int K) {
     	expCol.insert(new BasicDBObject("ehmm", h.statsToBson())
                 .append("Accuracy", p.getAccuracy())
                 .append("augment", augmentTest)
                 .append("augmentThreshold", augmentThreshold)
+                .append("augmentSize", augmentSize)
+                .append("numAxisBin", numAxisBin)
                 .append("K", K));
     }
 

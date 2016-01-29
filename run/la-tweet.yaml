@@ -1,7 +1,7 @@
 file:
   # dir: &DIR /Users/keyangzhang/Documents/UIUC/Research/Mobility/data/ny40k/
-  # dir: &DIR /Users/chao/Dataset/hmm-mobility/tweet-limited/
-  dir: &DIR ../data/tweet-limited/
+  # dir: &DIR /Users/chao/Dataset/hmm-mobility/la-tweet/
+  dir: &DIR ../data/la-tweet/
   raw:
     dir: &RAW_DIR !join [*DIR, raw/]
     checkins: !join [*RAW_DIR, checkins.txt]
@@ -17,7 +17,7 @@ mongo:
   write: no
   dns: dmserv4.cs.illinois.edu
   port: 11111
-  db: ny9m
+  db: tweet-la
   raw: raw
   sequences: hmm_seqs_limited
   words: hmm_words_limited
@@ -37,13 +37,13 @@ preprocess:
 augment:
   # number of bins for the longitude and latitude axis
   numAxisBin: [10, 15, 20]
-  augmentTrain: yes
+  augmentTrain: no
   augmentTest: yes
   augmentedSize: [100, 50, 20, 10]
   threshold: [0.3, 0.2, 0.1] # similarity threshold
-  evalThresh: yes
-  evalSize: yes
-  evalNumBin: yes
+  evalThresh: no
+  evalSize: no
+  evalNumBin: no
 
 
 hmm:
@@ -51,7 +51,7 @@ hmm:
   # for the hmm model
   numState: [10, 5, 15, 20, 25, 30]
   numComponent: 1
-  evalNumState: yes
+  evalNumState: no
 
 # added by Keyang
 ehmm:

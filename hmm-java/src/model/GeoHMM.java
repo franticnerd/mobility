@@ -29,14 +29,15 @@ public class GeoHMM extends HMM {
         updatePi();
         updateA();
         updateGeoModel(data);
-        updateTemporalModel(data);
+//        updateTemporalModel(data);
     }
 
     protected double calcLLState(RealVector geoDatum, RealVector temporalDatum, Map<Integer, Integer> textDatum, int k,
                                  boolean isTest) {
         double geoProb = calcGeoLLState(geoDatum, k);
-        double temporalProb = temporalModel[k].calcLL(temporalDatum);
-        return geoProb + temporalProb;
+//        double temporalProb = temporalModel[k].calcLL(temporalDatum);
+//        return geoProb + temporalProb;
+        return geoProb;
     }
 
 }

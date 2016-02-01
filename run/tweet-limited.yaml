@@ -1,6 +1,7 @@
 file:
   # dir: &DIR /Users/keyangzhang/Documents/UIUC/Research/Mobility/data/ny40k/
-  dir: &DIR /Users/chao/Dataset/hmm-mobility/tweet-limited/
+  # dir: &DIR /Users/chao/Dataset/hmm-mobility/tweet-limited/
+  dir: &DIR ../data/tweet-limited/
   raw:
     dir: &RAW_DIR !join [*DIR, raw/]
     checkins: !join [*RAW_DIR, checkins.txt]
@@ -48,16 +49,16 @@ augment:
 hmm:
   maxIter: 50
   # for the hmm model
-  numState: [10, 5, 15, 20]
+  numState: [10, 5, 15, 20, 25, 30]
   numComponent: 1
   evalNumState: yes
 
 # added by Keyang
 ehmm:
-  numCluster: [5, 6, 8, 10]
-  initMethod: [random, uniform, kmeans_k, kmeans_2k]
-  evalNumCluster: no
-  evalInitMethod: no
+  numCluster: [2,4,6,8,10,12,14]
+  initMethod: [random]
+  evalNumCluster: yes
+  evalInitMethod: yes
 
 
 predict:

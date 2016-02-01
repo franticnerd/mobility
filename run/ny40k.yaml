@@ -1,6 +1,7 @@
 file:
-  # dir: &DIR /Users/keyangzhang/Documents/UIUC/Research/Mobility/data/ny40k/
-  dir: &DIR /Users/chao/Dataset/hmm-mobility/ny40k/
+  # dir: &DIR /Users/keyangzhang/Documents/UIUC/Research/Mobility/mobility/data/ny40k/
+  # dir: &DIR /Users/chao/Dataset/hmm-mobility/ny40k/
+  dir: &DIR ../data/ny40k/
   raw:
     dir: &RAW_DIR !join [*DIR, raw/]
     checkins: !join [*RAW_DIR, checkins.txt]
@@ -45,16 +46,16 @@ augment:
   evalNumBin: yes
 
 hmm:
-  maxIter: 5
+  maxIter: 200
   # for the hmm model
-  numState: [10, 20, 30, 40, 50]
+  numState: [5, 10, 20, 30, 40, 50]
   numComponent: 1
   evalNumState: yes
 
 # added by Keyang
 ehmm:
-  numCluster: [2, 3, 4, 5]
-  initMethod: [random, uniform, kmeans_k, kmeans_2k]
+  numCluster: [6, 2, 4, 8, 10, 12, 15]
+  initMethod: [random, kmeans_k, kmeans_2k]
   evalNumCluster: no
   evalInitMethod: no
 

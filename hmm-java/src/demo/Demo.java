@@ -147,14 +147,15 @@ public class Demo {
 			geoHMM = new GeoHMM(maxIter);
 			geoHMM.train(hmmdb, numStates, numComponent);
 			mongo.writeGeoHMM(geoHMM);
+			HMMPredictor hp = new HMMPredictor(geoHMM, avgTest);
+			for (Integer K : KList) {
+				hp.predict(pd, K);
+				System.out.println("GeoHMM based prediction accuracy:" + hp.getAccuracy());
+				mongo.writePredicton(geoHMM, hp, K);
+			}
 		}
 		// predict
-		HMMPredictor hp = new HMMPredictor(geoHMM, avgTest);
-		for (Integer K : KList) {
-			hp.predict(pd, K);
-			System.out.println("GeoHMM based prediction accuracy:" + hp.getAccuracy());
-			mongo.writePredicton(geoHMM, hp, K);
-		}
+		
 	}
 
 
@@ -168,14 +169,15 @@ public class Demo {
 			h = new HMM(maxIter);
 			h.train(hmmdb, numStates, numComponent);
 			mongo.writeHMM(h, augmentTest, augmentThreshold, augmentSize, numAxisBin);
+			HMMPredictor hp = new HMMPredictor(h, avgTest);
+			for (Integer K : KList) {
+				hp.predict(pd, K);
+				System.out.println("HMM based prediction accuracy:" + hp.getAccuracy());
+				mongo.writePredicton(h, hp, augmentTest, augmentThreshold, augmentSize, numAxisBin, K);
+			}
 		}
 		// predict
-		HMMPredictor hp = new HMMPredictor(h, avgTest);
-		for (Integer K : KList) {
-			hp.predict(pd, K);
-			System.out.println("HMM based prediction accuracy:" + hp.getAccuracy());
-			mongo.writePredicton(h, hp, augmentTest, augmentThreshold, augmentSize, numAxisBin, K);
-		}
+		
 	}
 
 	static void runEHMM(int maxIter, int numCluster, int numStates, int numComponent, String initMethod) throws Exception {
@@ -188,13 +190,14 @@ public class Demo {
 			ehmm = new EHMM(maxIter, numStates, numStates, numComponent, numCluster, initMethod);
 			ehmm.train(hmmdb);
 			mongo.writeEHMM(ehmm, augmentTest, augmentThreshold, augmentSize, numAxisBin);
+			EHMMPredictor ep = new EHMMPredictor(ehmm, avgTest);
+			for (Integer K : KList) {
+				ep.predict(pd, K);
+				System.out.println("EHMM based prediction accuracy:" + ep.getAccuracy());
+				mongo.writePredicton(ehmm, ep, augmentTest, augmentThreshold, augmentSize, numAxisBin, K);
+			}
 		}
-		EHMMPredictor ep = new EHMMPredictor(ehmm, avgTest);
-		for (Integer K : KList) {
-			ep.predict(pd, K);
-			System.out.println("EHMM based prediction accuracy:" + ep.getAccuracy());
-			mongo.writePredicton(ehmm, ep, augmentTest, augmentThreshold, augmentSize, numAxisBin, K);
-		}
+		
 	}
 
 	/**
@@ -273,4 +276,3 @@ public class Demo {
     }
 
 }
-

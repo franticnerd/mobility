@@ -1,6 +1,7 @@
 file:
   # dir: &DIR /Users/keyangzhang/Documents/UIUC/Research/Mobility/data/ny40k/
-  dir: &DIR /Users/chao/Dataset/hmm-mobility/la-tweet/
+  # dir: &DIR /Users/chao/Dataset/hmm-mobility/la-tweet/
+  dir: &DIR ../data/la-tweet/
   raw:
     dir: &RAW_DIR !join [*DIR, raw/]
     checkins: !join [*RAW_DIR, checkins.txt]
@@ -36,27 +37,27 @@ preprocess:
 augment:
   # number of bins for the longitude and latitude axis
   numAxisBin: [10, 15, 20]
-  augmentTrain: no
+  augmentTrain: yes
   augmentTest: yes
   augmentedSize: [100, 50, 20, 10]
   threshold: [0.3, 0.2, 0.1] # similarity threshold
   evalThresh: yes
   evalSize: yes
-  evalNumBin: yes
+  evalNumBin: no
 
 
 hmm:
   maxIter: 50
   # for the hmm model
-  numState: [10, 5, 15, 20]
+  numState: [10, 5, 15, 20, 25, 30]
   numComponent: 1
-  evalNumState: yes
+  evalNumState: no
 
 # added by Keyang
 ehmm:
-  numCluster: [5, 8, 10]
-  initMethod: [random, uniform, kmeans_k, kmeans_2k]
-  evalNumCluster: no
+  numCluster: [2,4,6,8,10,12,14]
+  initMethod: [random]
+  evalNumCluster: yes
   evalInitMethod: no
 
 

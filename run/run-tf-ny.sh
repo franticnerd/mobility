@@ -1,7 +1,7 @@
 #!/bin/zsh
 
 # parameter file
-para_file='./4sq.yaml'
+para_file='./tf-ny.yaml'
 java_dir='../hmm-java/'
 python_dir='../python-mobility/'
 jar_file=$java_dir'hmm-java.jar'
@@ -11,14 +11,14 @@ jar_file=$java_dir'hmm-java.jar'
 # --------------------------------------------------------------------------------
 
 function pre {
-  # python $python_dir'preprocess.py' $para_file
+  python $python_dir'preprocess.py' $para_file
 }
 
 # --------------------------------------------------------------------------------
 # Step 2: run the algorithms.
 # --------------------------------------------------------------------------------
 function run {
-  java -jar -Xmx15G $jar_file $para_file
+  java -jar -Xmx10G $jar_file $para_file
 }
 
 
@@ -27,9 +27,9 @@ function run {
 # --------------------------------------------------------------------------------
 
 function post {
-  # python $python_dir'plot.py' $para_file
+  python $python_dir'postprocess.py' $para_file
 }
 
-# pre
-run
+pre
+# run
 # post

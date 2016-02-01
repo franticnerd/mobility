@@ -1,7 +1,7 @@
 file:
   # dir: &DIR /Users/keyangzhang/Documents/UIUC/Research/Mobility/data/ny40k/
   # dir: &DIR /Users/chao/Dataset/hmm-mobility/la-tweet/
-  dir: &DIR ../data/la-tweet/
+  dir: &DIR ../../data/la-tweet/
   raw:
     dir: &RAW_DIR !join [*DIR, raw/]
     checkins: !join [*RAW_DIR, checkins.txt]

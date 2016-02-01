@@ -1,6 +1,6 @@
 file:
   # dir: &DIR /Users/keyangzhang/Documents/UIUC/Research/Mobility/data/ny40k/
-  dir: &DIR /Users/chao/Dataset/hmm-mobility/4sq-small/
+  dir: &DIR ../../data/4sq-small/
   raw:
     dir: &RAW_DIR !join [*DIR, raw/]
     checkins: !join [*RAW_DIR, checkins.txt]

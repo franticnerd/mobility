@@ -35,12 +35,14 @@ preprocess:
 # added by Keyang
 augment:
   # number of bins for the longitude and latitude axis
-  numAxisBin: 10
+  numAxisBin: [10, 20, 30]
   augmentTrain: no
-  augmentTest: no
-  augmentedSize: 10
-  threshold: [0.1, 0.2, 0.3] # similarity threshold
+  augmentTest: yes
+  augmentedSize: [50, 100, 20, 10]
+  threshold: [0.3, 0.2, 0.1] # similarity threshold
   evalThresh: yes
+  evalSize: yes
+  evalNumBin: yes
 
 hmm:
   maxIter: 5
@@ -64,7 +66,7 @@ predict:
   K: [1,2,3,4,5]
   # added by Keyang
   avgTest: no
-  filterTest: no # if set to yes, test set will only retain the seqs of the user with at least 1 training seqs
+  filterTest: yes # if set to yes, test set will only retain the seqs of the user with at least 1 training seqs
 
 
 post:

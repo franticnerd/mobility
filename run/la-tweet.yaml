@@ -71,8 +71,15 @@ predict:
 
 
 post:
+  box:
+    xmax: -118.15
+    xmin: -118.67
+    ymax: 34.4
+    ymin: 33.7
+    xcenter: -118.25
+    ycenter: 34.05
   keyword:
-    K: 10
+    K: 20
     dir: &OUT_DIR !join [*DIR, output/]
     hmm_description: !join [*OUT_DIR, hmm.txt]
   plot:
@@ -80,3 +87,4 @@ post:
     places: !join [*DRAW_DIR, places.pdf]
     hmm_geo: !join [*DRAW_DIR, hmm.pdf]
     hmm_state: !join [*DRAW_DIR, hmm_state.pdf]
+    background: !join [*DRAW_DIR, background.html]

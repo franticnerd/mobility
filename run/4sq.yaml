@@ -1,7 +1,7 @@
 file:
   write: yes
   # dir: &DIR /Users/keyangzhang/Documents/UIUC/Research/Mobility/data/4sq/
-  dir: &DIR /Users/chao/Dataset/hmm-mobility/ny40k/
+  dir: &DIR /Users/chao/Dataset/hmm-mobility/4sq/
   raw:
     dir: &RAW_DIR !join [*DIR, raw/]
     checkins: !join [*RAW_DIR, checkins.txt]
@@ -14,7 +14,7 @@ file:
 
 
 mongo:
-  write: yes
+  write: no
   dns: dmserv4.cs.illinois.edu
   port: 11111
   db: 4sq

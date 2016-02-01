@@ -1,7 +1,7 @@
 #!/bin/zsh
 
 # parameter file
-para_file='./4sq-limited.yaml'
+para_file='./4sq-small.yaml'
 java_dir='../hmm-java/'
 python_dir='../python-mobility/'
 jar_file=$java_dir'hmm-java.jar'
@@ -31,5 +31,5 @@ function post {
 }
 
 # pre
-run
-# post
+# run
+post

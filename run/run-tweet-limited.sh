@@ -27,9 +27,9 @@ function run {
 # --------------------------------------------------------------------------------
 
 function post {
-  python $python_dir'plot.py' $para_file
+  python $python_dir'postprocess.py' $para_file
 }
 
 # pre
-run
-# post
+# run
+post

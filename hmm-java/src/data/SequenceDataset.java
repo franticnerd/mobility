@@ -173,7 +173,8 @@ public class SequenceDataset {
 		}
 		for (int i = 0; i < items.length; i++) {
 			int wordId = Integer.parseInt(items[i]);
-			message.put(wordId, 1);
+			int oldCnt = message.containsKey(wordId) ? message.get(wordId) : 0;
+			message.put(wordId, oldCnt + 1);
 		}
 		return message;
 	}

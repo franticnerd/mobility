@@ -37,12 +37,12 @@ preprocess:
 augment:
   # number of bins for the longitude and latitude axis
   numAxisBin: [10, 15, 20]
-  augmentTrain: no
+  augmentTrain: yes
   augmentTest: yes
   augmentedSize: [100, 50, 20, 10]
   threshold: [0.3, 0.2, 0.1] # similarity threshold
-  evalThresh: no
-  evalSize: no
+  evalThresh: yes
+  evalSize: yes
   evalNumBin: no
 
 
@@ -56,9 +56,9 @@ hmm:
 # added by Keyang
 ehmm:
   numCluster: [2,4,6,8,10,12,14]
-  initMethod: [random, kmeans_k]
+  initMethod: [random]
   evalNumCluster: yes
-  evalInitMethod: yes
+  evalInitMethod: no
 
 
 predict:

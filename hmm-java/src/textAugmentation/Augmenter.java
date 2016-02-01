@@ -32,12 +32,12 @@ public class Augmenter {
 
 	public Map<Integer, Integer> getAugmentedText(Map<Integer, Integer> text, int augmentedSize) {
 		Map<Integer, Integer> augmentedText = new HashMap<Integer, Integer>(text);
-		HashMap<Integer, Double> word2idf = new HashMap<Integer, Double>();
+		HashMap<Integer, Double> word2tfidf = new HashMap<Integer, Double>();
 		for (int word : text.keySet()) {
-			word2idf.put(word, wordIdf.getIdf(word));
+			word2tfidf.put(word, text.get(word)*wordIdf.getIdf(word));
 			augmentedSize -= text.get(word);
 		}
-		Categorical c1 = new Categorical(word2idf);
+		Categorical c1 = new Categorical(word2tfidf);
 		for (int i = 0; i < augmentedSize; ++i) {
 			int word = (Integer) c1.sample();
 			if (similarities.containsKey(word)) {

@@ -34,7 +34,13 @@ public class Augmenter {
 		Map<Integer, Integer> augmentedText = new HashMap<Integer, Integer>(text);
 		HashMap<Integer, Double> word2tfidf = new HashMap<Integer, Double>();
 		for (int word : text.keySet()) {
-			word2tfidf.put(word, text.get(word)*wordIdf.getIdf(word));
+			if (!wordIdf.containsKey(word)) {
+				System.out.println("wordIdf doesn't contain " + word);
+				System.exit(1);
+			}
+			double tf = Math.log(text.get(word)) + 1;
+			double idf = wordIdf.getIdf(word);
+			word2tfidf.put(word, tf * idf);
 			augmentedSize -= text.get(word);
 		}
 		Categorical c1 = new Categorical(word2tfidf);

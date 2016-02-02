@@ -31,5 +31,5 @@ function post {
 }
 
 # pre
-# run
-post
+run
+# post

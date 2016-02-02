@@ -18,7 +18,7 @@ function pre {
 # Step 2: run the algorithms.
 # --------------------------------------------------------------------------------
 function run {
-  java -jar -Xmx4G $jar_file $para_file
+  java -jar -Xmx10G $jar_file $para_file
 }
 
 
@@ -30,6 +30,6 @@ function post {
   python $python_dir'postprocess.py' $para_file
 }
 
-pre
-# run
+# pre
+run
 # post

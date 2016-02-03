@@ -1,6 +1,4 @@
 file:
-  # dir: &DIR /Users/keyangzhang/Documents/UIUC/Research/Mobility/data/ny40k/
-  # dir: &DIR /Users/chao/Dataset/hmm-mobility/la-tweet/
   dir: &DIR ../../data/la-tweet/
   raw:
     dir: &RAW_DIR !join [*DIR, raw/]
@@ -41,15 +39,15 @@ augment:
   augmentTest: yes
   augmentedSize: [100, 50, 20, 10]
   threshold: [0.3, 0.2, 0.1] # similarity threshold
-  evalThresh: yes
-  evalSize: yes
+  evalThresh: no
+  evalSize: no
   evalNumBin: no
 
 
 hmm:
   maxIter: 50
   # for the hmm model
-  numState: [10, 5, 15, 20, 25, 30]
+  numState: [30, 5, 15, 20, 25, 30]
   numComponent: 1
   evalNumState: no
 
@@ -83,9 +81,15 @@ post:
     K: 20
     dir: &OUT_DIR !join [*DIR, output/]
     hmm_description: !join [*OUT_DIR, hmm.txt]
+    augmented_file: !join [*OUT_DIR, augmentation.txt]
   plot:
     dir: &DRAW_DIR !join [*DIR, output/]
     places: !join [*DRAW_DIR, places.pdf]
     hmm_geo: !join [*DRAW_DIR, hmm.pdf]
     hmm_state: !join [*DRAW_DIR, hmm_state.pdf]
     background: !join [*DRAW_DIR, background.html]
+    group_a: !join [*DRAW_DIR, group_a.txt]
+    group_a_pdf: !join [*DRAW_DIR, group_a.pdf]
+    group_b: !join [*DRAW_DIR, group_b.txt]
+    group_b_pdf: !join [*DRAW_DIR, group_b.pdf]
+

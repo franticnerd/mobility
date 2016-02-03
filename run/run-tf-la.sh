@@ -18,7 +18,7 @@ function pre {
 # Step 2: run the algorithms.
 # --------------------------------------------------------------------------------
 function run {
-  java -jar -Xmx4G $jar_file $para_file
+  java -jar -Xmx10G $jar_file $para_file
 }
 
 

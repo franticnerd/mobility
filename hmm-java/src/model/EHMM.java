@@ -28,6 +28,7 @@ public class EHMM {
 	int HMM_K;
 	int HMM_M;
 	String initMethod;
+	double elapsedTime;
 
 	ArrayList<HMM> hmms;
 	double[][] seqsFracCounts;
@@ -52,6 +53,7 @@ public class EHMM {
 	}
 
 	public void train(SequenceDataset data) throws Exception {
+		long start = System.currentTimeMillis();
 		this.data = data;
 		seqsFracCounts = new double[C][data.size()];
 		calcUser2seqs();
@@ -59,7 +61,7 @@ public class EHMM {
 		double prevLL = totalLL;
 		for (int iter = 0; iter < MaxIter; iter++) {
 			calcTotalLL();
-			System.out.println("EHMM finished iteration " + iter + ". Log-likelihood:" + totalLL);
+//			System.out.println("EHMM finished iteration " + iter + ". Log-likelihood:" + totalLL);
 
 			eStep();
 			mStep();
@@ -68,6 +70,8 @@ public class EHMM {
 				break;
 			prevLL = totalLL;
 		}
+		long end = System.currentTimeMillis();
+		elapsedTime = (end - start) / 1000.0;
 	}
 
 	public void testWhileTrain(SequenceDataset data, boolean avgTest) throws Exception {
@@ -81,7 +85,7 @@ public class EHMM {
 		double prevLL = totalLL;
 		for (int iter = 0; iter < MaxIter; iter++) {
 			calcTotalLL();
-			System.out.println("EHMM finished iteration " + iter + ". Log-likelihood:" + totalLL);
+//			System.out.println("EHMM finished iteration " + iter + ". Log-likelihood:" + totalLL);
 
 			EHMMPredictor up = new EHMMPredictor(this, avgTest);
 			up.predict(pd, 3);
@@ -203,10 +207,10 @@ public class EHMM {
 		}
 		KMeans kMeans = new KMeans(500);
 		List<Integer>[] kMeansResults = kMeans.cluster(featureVecs, weights, C);
-		System.out.println(featureVecs.size());
-		for (List<Integer> kMeansResult : kMeansResults) {
-			System.out.println(kMeansResult.size());
-		}
+//		System.out.println(featureVecs.size());
+//		for (List<Integer> kMeansResult : kMeansResults) {
+//			System.out.println(kMeansResult.size());
+//		}
 		for (int c = 0; c < C; ++c) {
 			List<Integer> members = kMeansResults[c];
 			for (int member : members) {
@@ -274,6 +278,7 @@ public class EHMM {
 		o.put("C", C);
 		o.put("K", HMM_K);
 		o.put("Init", initMethod);
+		o.put("time", elapsedTime);
 		return o;
 	}
 	

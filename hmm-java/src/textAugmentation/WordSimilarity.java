@@ -107,7 +107,7 @@ public class WordSimilarity implements Serializable {
 			for (Integer word2 : word2stGrids.keySet()) {
 				if (similarities.containsKey(word1) && similarities.get(word1).containsKey(word2)) {
 					double similarityScore = similarities.get(word1).get(word2);
-					if (similarityScore > similarityThresh) {
+					if (similarityScore >= similarityThresh) {
 						String gridNum1 = getStGridNum(word1).toString();
 						String gridNum2 = getStGridNum(word2).toString();
 						String ps = String.join("\t", wd.getWord(word1), wd.getWord(word2), gridNum1, gridNum2);

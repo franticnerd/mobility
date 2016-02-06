@@ -65,14 +65,19 @@ public class HMM implements Serializable {
 	double[][][] ll; // ll[r][n][k] is the log-likelihood p(x[r][n]|k).
 	double[][] scalingFactor; // scalingFactor[r][n] is chosen from ll[r][n].
 	double totalLL;
+	// running time stat
+	double elapsedTime;
 
 	public HMM(int maxIter) {
 		this.maxIter = maxIter;
 	}
 
 	public void train(SequenceDataset data, int K, int M) {
+		long start = System.currentTimeMillis();
 		init(data, K, M);
 		iterate(data);
+		long end = System.currentTimeMillis();
+		elapsedTime = (end - start) / 1000.0;
 	}
 
 	/**
@@ -684,6 +689,7 @@ public class HMM implements Serializable {
 		o.put("K", K);
 		o.put("M", M);
 		o.put("V", V);
+		o.put("time", elapsedTime);
 		return o;
 	}
 

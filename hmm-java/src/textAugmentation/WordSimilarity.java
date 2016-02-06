@@ -100,7 +100,7 @@ public class WordSimilarity implements Serializable {
 		HashMap<StGrid, Double> stGrids2 = word2stGrids.get(word2);
 		return new MapVectorUtils<StGrid>().cosine(stGrids1, stGrids2);
 	}
-
+	
 	public void printHighlySimilarPairs() throws Exception {
 		List<RankedObject> rankedWordPairs = new ArrayList<RankedObject>();
 		for (Integer word1 : word2stGrids.keySet()) {

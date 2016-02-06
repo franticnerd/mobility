@@ -152,7 +152,6 @@ public class Demo {
 			}
 		}
 		// predict
-
 	}
 
 	static void runHMM(int maxIter, int numStates, int numComponent) throws Exception {
@@ -182,6 +181,7 @@ public class Demo {
 		try {
 			ehmm = mongo.loadEHMM(numStates, numCluster, initMethod, hmmdb, augmentTest, augmentThreshold, augmentSize,
 					numAxisBin);
+//			throw new IOException();
 		} catch (Exception e) {
 			System.out.println("Cannot load EHMM from the Mongo DB. Start EHMM training.");
 			ehmm = new EHMM(maxIter, numStates, numStates, numComponent, numCluster, initMethod);

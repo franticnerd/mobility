@@ -16,8 +16,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * The main file for evaluating the models.
- * Created by chao on 4/16/15.
+ * The main file for evaluating the models. Created by chao on 4/16/15.
  */
 public class Demo {
 
@@ -32,15 +31,15 @@ public class Demo {
 	static List<Integer> KList;
 	static int maxIter;
 	static boolean avgTest;
-	static List<Integer> numStateList;  // the number of states for HMM.
+	static List<Integer> numStateList; // the number of states for HMM.
 	static int numComponent; // the number of GMM component for HMM
 	static List<Integer> numClusterList; // the number of clusters for EHMM.
-	static List<String> initMethodList;  // the list of initalization methods for EHMM.
+	static List<String> initMethodList; // the list of initalization methods for EHMM.
 
 	// parameters for augmentation.
-	static List<Double> thresholdList;  // the list of similarity thresholds for augmenting text
-	static List<Integer> augmentSizeList;  // the list of augmentation size
-	static List<Integer> numAxisBinList;  // the list of number of bins per axis
+	static List<Double> thresholdList; // the list of similarity thresholds for augmenting text
+	static List<Integer> augmentSizeList; // the list of augmentation size
+	static List<Integer> numAxisBinList; // the list of number of bins per axis
 	static boolean augmentTrain;
 	static boolean augmentTest;
 	static double augmentThreshold;
@@ -53,7 +52,8 @@ public class Demo {
 	static boolean filterTest;
 
 	/**
-	 * ---------------------------------- Initialize ----------------------------------
+	 * ---------------------------------- Initialize
+	 * ----------------------------------
 	 **/
 	static void init(String paraFile) throws Exception {
 		config = new Config().load(paraFile);
@@ -80,8 +80,8 @@ public class Demo {
 		augmentSize = augmentSizeList.get(0);
 		augmentThreshold = thresholdList.get(0);
 		numAxisBin = numAxisBinList.get(0);
-        distThre = (Double) ((Map) config.get("predict")).get("distThre");
-        timeThre = (Double) ((Map) config.get("predict")).get("timeThre");
+		distThre = (Double) ((Map) config.get("predict")).get("distThre");
+		timeThre = (Double) ((Map) config.get("predict")).get("timeThre");
 		// generate the hmmd and prediction data
 		getAugmentedDataSet();
 
@@ -95,7 +95,6 @@ public class Demo {
 		initMethodList = (List<String>) ((Map) config.get("ehmm")).get("initMethod");
 	}
 
-
 	static void getAugmentedDataSet() throws Exception {
 		Augmenter augmenter = new Augmenter(rawDb, wd, numAxisBin, numAxisBin, augmentThreshold);
 		// augmented data for training
@@ -106,16 +105,16 @@ public class Demo {
 		pd.genCandidates(distThre, timeThre);
 	}
 
-
 	/**
-	 * ---------------------------------- Train and Predict ----------------------------------
+	 * ---------------------------------- Train and Predict
+	 * ----------------------------------
 	 **/
 	static void run() throws Exception {
 		// run the predictors using default parameters
 		runDistance();
 		runGeoHMM(maxIter, numStateList.get(0), numComponent);
 		runHMM(maxIter, numStateList.get(0), numComponent);
-        runEHMM(maxIter, numClusterList.get(0), numStateList.get(0), numComponent, initMethodList.get(0));
+		runEHMM(maxIter, numClusterList.get(0), numStateList.get(0), numComponent, initMethodList.get(0));
 		// tune the parameters
 		evalNumStates();
 		evalNumCluster();
@@ -135,13 +134,11 @@ public class Demo {
 		}
 	}
 
-
-
 	static void runGeoHMM(int maxIter, int numStates, int numComponent) throws Exception {
 		GeoHMM geoHMM;
 		try {
-			geoHMM =  mongo.loadGeoHMM(numStates);
-//			throw new IOException();
+			geoHMM = mongo.loadGeoHMM(numStates);
+			//			throw new IOException();
 		} catch (Exception e) {
 			System.out.println("Cannot load GeoHMM from the Mongo DB. Start GeoHMM training.");
 			geoHMM = new GeoHMM(maxIter);
@@ -155,15 +152,14 @@ public class Demo {
 			}
 		}
 		// predict
-		
-	}
 
+	}
 
 	static void runHMM(int maxIter, int numStates, int numComponent) throws Exception {
 		HMM h;
 		try {
 			h = mongo.loadHMM(numStates, augmentTest, augmentThreshold, augmentSize, numAxisBin);
-//			throw new IOException();
+			//			throw new IOException();
 		} catch (Exception e) {
 			System.out.println("Cannot load HMM from the Mongo DB. Start HMM training.");
 			h = new HMM(maxIter);
@@ -177,19 +173,24 @@ public class Demo {
 			}
 		}
 		// predict
-		
+
 	}
 
-	static void runEHMM(int maxIter, int numCluster, int numStates, int numComponent, String initMethod) throws Exception {
+	static void runEHMM(int maxIter, int numCluster, int numStates, int numComponent, String initMethod)
+			throws Exception {
 		EHMM ehmm;
 		try {
-            ehmm =  mongo.loadEHMM(numStates, numCluster, initMethod, hmmdb,
-                        augmentTest, augmentThreshold, augmentSize, numAxisBin);
+			ehmm = mongo.loadEHMM(numStates, numCluster, initMethod, hmmdb, augmentTest, augmentThreshold, augmentSize,
+					numAxisBin);
 		} catch (Exception e) {
 			System.out.println("Cannot load EHMM from the Mongo DB. Start EHMM training.");
 			ehmm = new EHMM(maxIter, numStates, numStates, numComponent, numCluster, initMethod);
 			ehmm.train(hmmdb);
-			mongo.writeEHMM(ehmm, augmentTest, augmentThreshold, augmentSize, numAxisBin);
+			try {
+				mongo.writeEHMM(ehmm, augmentTest, augmentThreshold, augmentSize, numAxisBin);
+			} catch (Exception exceedBSonSize) {
+
+			}
 			EHMMPredictor ep = new EHMMPredictor(ehmm, avgTest);
 			for (Integer K : KList) {
 				ep.predict(pd, K);
@@ -197,14 +198,15 @@ public class Demo {
 				mongo.writePredicton(ehmm, ep, augmentTest, augmentThreshold, augmentSize, numAxisBin, K);
 			}
 		}
-		
+
 	}
 
 	/**
 	 * Evaluate different parameters.
 	 */
 	static void evalNumStates() throws Exception {
-		if ((Boolean) ((Map)config.get("hmm")).get("evalNumState") == false)	return;
+		if ((Boolean) ((Map) config.get("hmm")).get("evalNumState") == false)
+			return;
 		for (Integer numState : numStateList) {
 			runHMM(maxIter, numState, numComponent);
 			runGeoHMM(maxIter, numState, numComponent);
@@ -213,15 +215,16 @@ public class Demo {
 	}
 
 	static void evalNumCluster() throws Exception {
-		if ((Boolean) ((Map)config.get("ehmm")).get("evalNumCluster") == false)	return;
+		if ((Boolean) ((Map) config.get("ehmm")).get("evalNumCluster") == false)
+			return;
 		for (Integer numCluster : numClusterList) {
 			runEHMM(maxIter, numCluster, numStateList.get(0), numComponent, initMethodList.get(0));
 		}
 	}
 
-
 	static void evalInitMethod() throws Exception {
-		if ((Boolean) ((Map)config.get("ehmm")).get("evalInitMethod") == false)	return;
+		if ((Boolean) ((Map) config.get("ehmm")).get("evalInitMethod") == false)
+			return;
 		for (String initMethod : initMethodList) {
 			runEHMM(maxIter, numClusterList.get(0), numStateList.get(0), numComponent, initMethod);
 		}
@@ -233,20 +236,21 @@ public class Demo {
 		evalNumAxisBin();
 	}
 
-
 	static void evalAugmentationThresh() throws Exception {
-		if ((Boolean) ((Map)config.get("augment")).get("evalThresh") == false)	return;
+		if ((Boolean) ((Map) config.get("augment")).get("evalThresh") == false)
+			return;
 		for (Double threshold : thresholdList) {
 			augmentThreshold = threshold;
 			getAugmentedDataSet();
 			runHMM(maxIter, numStateList.get(0), numComponent);
 			runEHMM(maxIter, numClusterList.get(0), numStateList.get(0), numComponent, initMethodList.get(0));
 		}
-		augmentThreshold = thresholdList.get(0);  // restore the default value
+		augmentThreshold = thresholdList.get(0); // restore the default value
 	}
 
 	static void evalAugmentationSize() throws Exception {
-		if ((Boolean) ((Map)config.get("augment")).get("evalSize") == false)	return;
+		if ((Boolean) ((Map) config.get("augment")).get("evalSize") == false)
+			return;
 		for (Integer asize : augmentSizeList) {
 			augmentSize = asize;
 			getAugmentedDataSet();
@@ -257,7 +261,8 @@ public class Demo {
 	}
 
 	static void evalNumAxisBin() throws Exception {
-		if ((Boolean) ((Map)config.get("augment")).get("evalNumBin") == false)	return;
+		if ((Boolean) ((Map) config.get("augment")).get("evalNumBin") == false)
+			return;
 		for (Integer numBin : numAxisBinList) {
 			numAxisBin = numBin;
 			getAugmentedDataSet();
@@ -267,12 +272,15 @@ public class Demo {
 		numAxisBin = numAxisBinList.get(0);
 	}
 
-    /** ---------------------------------- Main ---------------------------------- **/
-    public static void main(String [] args) throws Exception {
-//        String paraFile = args.length > 0 ? args[0] : "../run/ny40k.yaml";
+	/**
+	 * ---------------------------------- Main
+	 * ----------------------------------
+	 **/
+	public static void main(String[] args) throws Exception {
+		//        String paraFile = args.length > 0 ? args[0] : "../run/ny40k.yaml";
 		String paraFile = args.length > 0 ? args[0] : "../run/4sq-small.yaml";
-        init(paraFile);
+		init(paraFile);
 		run();
-    }
+	}
 
 }
